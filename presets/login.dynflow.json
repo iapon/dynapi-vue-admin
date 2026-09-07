@@ -1,0 +1,143 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-08-26T00:00:00.000Z",
+  "handle": {
+    "slug": "login",
+    "name": "Login",
+    "enabled_cors": false,
+    "allowed_origins": []
+  },
+  "routes": [
+    {
+      "path": "/login",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "cache": {
+        "defaultTtl": 0
+      },
+      "flows": [
+        {
+          "handle": "login",
+          "methods": [
+            "POST"
+          ]
+        }
+      ]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      {
+        "id": "n_start",
+        "type": "entry",
+        "data": {}
+      },
+      {
+        "id": "a_fetch",
+        "type": "action",
+        "data": {
+          "action_type": "graphql",
+          "on_error": "continue",
+          "config": {
+            "query": "query($q: String!) {\n  members(where: {email: {eq: $q}}, limit: 1) {\n    id email password\n  }\n}",
+            "variables": {
+              "q": "{{form.email}}"
+            },
+            "result_key": "login",
+            "secret_vars": [
+              "password"
+            ]
+          }
+        }
+      },
+      {
+        "id": "c_check",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              {
+                "field": "form.password",
+                "operator": "bcrypt_matches",
+                "value": "{{results.login.members[0].password}}"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "a_cookie",
+        "type": "action",
+        "data": {
+          "action_type": "set_cookie",
+          "on_error": "continue",
+          "config": {
+            "name": "member",
+            "value": "{\"id\":\"{{results.login.members[0].id}}\"}",
+            "ttl_days": 30,
+            "path": "/",
+            "session": true
+          }
+        }
+      },
+      {
+        "id": "a_ok",
+        "type": "action",
+        "data": {
+          "action_type": "redirect",
+          "on_error": "continue",
+          "config": {
+            "location": "/",
+            "status": 303
+          }
+        }
+      },
+      {
+        "id": "a_fail",
+        "type": "action",
+        "data": {
+          "action_type": "redirect",
+          "on_error": "continue",
+          "config": {
+            "location": "/login?failed=1",
+            "status": 303
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "n_start",
+        "to": "a_fetch",
+        "branch": ""
+      },
+      {
+        "from": "a_fetch",
+        "to": "c_check",
+        "branch": ""
+      },
+      {
+        "from": "c_check",
+        "to": "a_cookie",
+        "branch": "then"
+      },
+      {
+        "from": "a_cookie",
+        "to": "a_ok",
+        "branch": ""
+      },
+      {
+        "from": "c_check",
+        "to": "a_fail",
+        "branch": "else"
+      }
+    ]
+  },
+  "queries": [],
+  "templates": []
+}

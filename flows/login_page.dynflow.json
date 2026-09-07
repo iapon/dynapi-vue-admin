@@ -1,0 +1,60 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-09-07T00:00:00.000Z",
+  "handle": {
+    "slug": "login_page",
+    "name": "Login page",
+    "enabled_cors": false,
+    "allowed_origins": []
+  },
+  "routes": [
+    {
+      "path": "/login",
+      "methods": [
+        "GET"
+      ],
+      "cache": {
+        "defaultTtl": 0
+      },
+      "flows": [
+        {
+          "handle": "login_page",
+          "methods": [
+            "GET"
+          ]
+        }
+      ]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      {
+        "id": "n_start",
+        "type": "entry",
+        "data": {}
+      },
+      {
+        "id": "a_render",
+        "type": "action",
+        "data": {
+          "action_type": "render",
+          "on_error": "continue",
+          "config": {
+            "template": "login.liquid"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "n_start",
+        "to": "a_render",
+        "branch": ""
+      }
+    ]
+  },
+  "queries": [],
+  "templates": []
+}

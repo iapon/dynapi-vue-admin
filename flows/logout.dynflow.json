@@ -1,0 +1,81 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-09-07T00:00:00.000Z",
+  "handle": {
+    "slug": "logout",
+    "name": "Logout",
+    "enabled_cors": false,
+    "allowed_origins": []
+  },
+  "routes": [
+    {
+      "path": "/logout",
+      "methods": [
+        "GET"
+      ],
+      "cache": {
+        "defaultTtl": 0
+      },
+      "flows": [
+        {
+          "handle": "logout",
+          "methods": [
+            "GET"
+          ]
+        }
+      ]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      {
+        "id": "n_start",
+        "type": "entry",
+        "data": {}
+      },
+      {
+        "id": "a_cookie",
+        "type": "action",
+        "data": {
+          "action_type": "set_cookie",
+          "on_error": "continue",
+          "config": {
+            "name": "member",
+            "value": "",
+            "ttl_days": 0,
+            "path": "/",
+            "session": true
+          }
+        }
+      },
+      {
+        "id": "a_redirect",
+        "type": "action",
+        "data": {
+          "action_type": "redirect",
+          "on_error": "continue",
+          "config": {
+            "location": "/login",
+            "status": 303
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "n_start",
+        "to": "a_cookie",
+        "branch": ""
+      },
+      {
+        "from": "a_cookie",
+        "to": "a_redirect",
+        "branch": ""
+      }
+    ]
+  },
+  "queries": [],
+  "templates": []
+}
