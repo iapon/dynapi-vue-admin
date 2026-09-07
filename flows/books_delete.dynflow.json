@@ -1,0 +1,84 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-09-07T00:00:00.000Z",
+  "handle": {
+    "slug": "books_delete",
+    "name": "Books delete",
+    "enabled_cors": false,
+    "allowed_origins": []
+  },
+  "routes": [
+    {
+      "path": "/api/books/delete",
+      "methods": [
+        "POST"
+      ],
+      "cache": {
+        "defaultTtl": 0
+      },
+      "membersOnly": true,
+      "loginPath": "/login",
+      "flows": [
+        {
+          "handle": "books_delete",
+          "methods": [
+            "POST"
+          ]
+        }
+      ]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      {
+        "id": "n_start",
+        "type": "entry",
+        "data": {}
+      },
+      {
+        "id": "a_delete",
+        "type": "action",
+        "data": {
+          "action_type": "graphql",
+          "on_error": "stop",
+          "config": {
+            "query": "mutation($id: ID!) {\n  deleteBook(id: $id)\n}",
+            "variables": {
+              "id": "{{json.id}}"
+            },
+            "result_key": "deleted",
+            "secret_vars": []
+          }
+        }
+      },
+      {
+        "id": "a_out",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 200,
+            "body_template": "{\"ok\": true}"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "n_start",
+        "to": "a_delete",
+        "branch": ""
+      },
+      {
+        "from": "a_delete",
+        "to": "a_out",
+        "branch": ""
+      }
+    ]
+  },
+  "queries": [],
+  "templates": []
+}

@@ -1,0 +1,87 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-09-07T00:00:00.000Z",
+  "handle": {
+    "slug": "books_add",
+    "name": "Books add",
+    "enabled_cors": false,
+    "allowed_origins": []
+  },
+  "routes": [
+    {
+      "path": "/api/books/add",
+      "methods": [
+        "POST"
+      ],
+      "cache": {
+        "defaultTtl": 0
+      },
+      "membersOnly": true,
+      "loginPath": "/login",
+      "flows": [
+        {
+          "handle": "books_add",
+          "methods": [
+            "POST"
+          ]
+        }
+      ]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      {
+        "id": "n_start",
+        "type": "entry",
+        "data": {}
+      },
+      {
+        "id": "a_create",
+        "type": "action",
+        "data": {
+          "action_type": "graphql",
+          "on_error": "stop",
+          "config": {
+            "query": "mutation($title: String!, $author: String!, $year: Int, $status: String) {\n  createBook(input: {title: $title, author: $author, year: $year, status: $status}) {\n    id title author year status\n  }\n}",
+            "variables": {
+              "title": "{{json.title}}",
+              "author": "{{json.author}}",
+              "year": "{{json.year | plus: 0}}",
+              "status": "{{json.status | default: \"in_stock\"}}"
+            },
+            "result_key": "created",
+            "secret_vars": []
+          }
+        }
+      },
+      {
+        "id": "a_out",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 200,
+            "body_template": "{{ results.created | json }}"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "n_start",
+        "to": "a_create",
+        "branch": ""
+      },
+      {
+        "from": "a_create",
+        "to": "a_out",
+        "branch": ""
+      }
+    ]
+  },
+  "queries": [],
+  "templates": []
+}

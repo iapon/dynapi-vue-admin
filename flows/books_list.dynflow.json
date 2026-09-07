@@ -1,0 +1,82 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-09-07T00:00:00.000Z",
+  "handle": {
+    "slug": "books_list",
+    "name": "Books list",
+    "enabled_cors": false,
+    "allowed_origins": []
+  },
+  "routes": [
+    {
+      "path": "/api/books",
+      "methods": [
+        "GET"
+      ],
+      "cache": {
+        "defaultTtl": 0
+      },
+      "membersOnly": true,
+      "loginPath": "/login",
+      "flows": [
+        {
+          "handle": "books_list",
+          "methods": [
+            "GET"
+          ]
+        }
+      ]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      {
+        "id": "n_start",
+        "type": "entry",
+        "data": {}
+      },
+      {
+        "id": "a_q",
+        "type": "action",
+        "data": {
+          "action_type": "graphql",
+          "on_error": "stop",
+          "config": {
+            "query": "query {\n  books(limit: 200, orderBy: [{field: CREATED_AT, direction: DESC}]) {\n    id title author year status\n  }\n}",
+            "variables": {},
+            "result_key": "books",
+            "secret_vars": []
+          }
+        }
+      },
+      {
+        "id": "a_out",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 200,
+            "body_template": "{{ results.books | json }}"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "n_start",
+        "to": "a_q",
+        "branch": ""
+      },
+      {
+        "from": "a_q",
+        "to": "a_out",
+        "branch": ""
+      }
+    ]
+  },
+  "queries": [],
+  "templates": []
+}
