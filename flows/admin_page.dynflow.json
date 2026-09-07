@@ -1,0 +1,83 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-09-07T00:00:00.000Z",
+  "handle": {
+    "slug": "admin_page",
+    "name": "Admin page",
+    "enabled_cors": false,
+    "allowed_origins": []
+  },
+  "routes": [
+    {
+      "path": "/admin",
+      "methods": [
+        "GET"
+      ],
+      "cache": {
+        "defaultTtl": 0
+      },
+      "membersOnly": true,
+      "loginPath": "/login",
+      "flows": [
+        {
+          "handle": "admin_page",
+          "methods": [
+            "GET"
+          ]
+        }
+      ]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      {
+        "id": "n_start",
+        "type": "entry",
+        "data": {}
+      },
+      {
+        "id": "a_me",
+        "type": "action",
+        "data": {
+          "action_type": "graphql",
+          "on_error": "continue",
+          "config": {
+            "query": "query($id: ID!) {\n  members(where: {id: {eq: $id}}, limit: 1) {\n    id email\n  }\n}",
+            "variables": {
+              "id": "{{ member.id }}"
+            },
+            "result_key": "me",
+            "secret_vars": []
+          }
+        }
+      },
+      {
+        "id": "a_render",
+        "type": "action",
+        "data": {
+          "action_type": "render",
+          "on_error": "continue",
+          "config": {
+            "template": "admin.liquid"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "n_start",
+        "to": "a_me",
+        "branch": ""
+      },
+      {
+        "from": "a_me",
+        "to": "a_render",
+        "branch": ""
+      }
+    ]
+  },
+  "queries": [],
+  "templates": []
+}
