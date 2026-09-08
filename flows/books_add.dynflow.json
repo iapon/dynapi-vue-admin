@@ -38,6 +38,80 @@
         "data": {}
       },
       {
+        "id": "c_title",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              {
+                "field": "json.title",
+                "operator": "matches",
+                "value": "\\S"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "c_author",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              {
+                "field": "json.author",
+                "operator": "matches",
+                "value": "\\S"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "c_year_present",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              {
+                "field": "json.year",
+                "operator": "ne",
+                "value": ""
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "c_year_range",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              {
+                "field": "json.year",
+                "operator": "matches",
+                "value": "^\\d{4}$"
+              },
+              {
+                "field": "json.year",
+                "operator": "gt",
+                "value": "1800"
+              },
+              {
+                "field": "json.year",
+                "operator": "lt",
+                "value": "2100"
+              }
+            ]
+          }
+        }
+      },
+      {
         "id": "a_create",
         "type": "action",
         "data": {
@@ -46,9 +120,9 @@
           "config": {
             "query": "mutation($title: String!, $author: String!, $year: Int, $status: String) {\n  createBook(input: {title: $title, author: $author, year: $year, status: $status}) {\n    id title author year status\n  }\n}",
             "variables": {
-              "title": "{{json.title}}",
-              "author": "{{json.author}}",
-              "year": "{{json.year | plus: 0}}",
+              "title": "{{json.title | strip}}",
+              "author": "{{json.author | strip}}",
+              "year": "{% if json.year == blank %}{% else %}{{ json.year | strip | plus: 0 }}{% endif %}",
               "status": "{{json.status | default: \"in_stock\"}}"
             },
             "result_key": "created",
@@ -63,8 +137,44 @@
           "action_type": "respond_json",
           "on_error": "continue",
           "config": {
-            "status": 200,
-            "body_template": "{{ results.created | json }}"
+            "status": 201,
+            "body_template": "{\"book\": {{ results.created.createBook | json }}}"
+          }
+        }
+      },
+      {
+        "id": "a_err_title",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 400,
+            "body_template": "{\"error\": \"VALIDATION\", \"field\": \"title\", \"message\": \"Укажите название\"}"
+          }
+        }
+      },
+      {
+        "id": "a_err_author",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 400,
+            "body_template": "{\"error\": \"VALIDATION\", \"field\": \"author\", \"message\": \"Укажите автора\"}"
+          }
+        }
+      },
+      {
+        "id": "a_err_year",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 400,
+            "body_template": "{\"error\": \"VALIDATION\", \"field\": \"year\", \"message\": \"Год должен быть числом от 1800 до 2100\"}"
           }
         }
       }
@@ -72,8 +182,48 @@
     "edges": [
       {
         "from": "n_start",
-        "to": "a_create",
+        "to": "c_title",
         "branch": ""
+      },
+      {
+        "from": "c_title",
+        "to": "c_author",
+        "branch": "then"
+      },
+      {
+        "from": "c_title",
+        "to": "a_err_title",
+        "branch": "else"
+      },
+      {
+        "from": "c_author",
+        "to": "c_year_present",
+        "branch": "then"
+      },
+      {
+        "from": "c_author",
+        "to": "a_err_author",
+        "branch": "else"
+      },
+      {
+        "from": "c_year_present",
+        "to": "c_year_range",
+        "branch": "then"
+      },
+      {
+        "from": "c_year_present",
+        "to": "a_create",
+        "branch": "else"
+      },
+      {
+        "from": "c_year_range",
+        "to": "a_create",
+        "branch": "then"
+      },
+      {
+        "from": "c_year_range",
+        "to": "a_err_year",
+        "branch": "else"
       },
       {
         "from": "a_create",

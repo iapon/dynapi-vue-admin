@@ -8,7 +8,7 @@
 - `/logout` — выход;
 - `/api/books`, `/api/books/add`, `/api/books/delete` — JSON-API каталога, только для авторизованных;
 - `/admin` — закрытая админка: Vue SPA, которой сервер при рендере подкладывает профиль читателя в `window.__BOOT__`;
-- типы контента `book` и `member`, пять сеяных книг и один читатель.
+- типы контента `book` и `member`, десять сеяных книг и один читатель.
 
 ## Требования
 
@@ -31,6 +31,7 @@
 | `step-3-api` | + сценарии JSON-API (`books_list` / `books_add` / `books_delete`) и полная карта маршрутов `files/routes.json` |
 | `step-4-spa` | + шаблон админки `templates/admin.liquid` и исходники Vue-приложения `spa/` |
 | `step-5-accounts` | + аккаунты читателей до конца: регистрация с подтверждением email, сброс пароля по ссылке, поле роли и гейт «удалять может только библиотекарь» (статья №2 журнала) |
+| `step-6-api` | + API со вкусом: фильтры `?status=`/`?q=`, сортировка `?sort=` по белому списку, пагинация по 5 книг с `?page=`, конверт `{items, total, pages}`, валидация POST с 400 по полям (статья №3 журнала) |
 | `main` | + сиды данных `seed/`, сценарий страницы админки `flows/admin_page.dynflow.json`, этот README |
 
 Переключайтесь по мере прохождения:
@@ -40,6 +41,7 @@ git checkout step-2-auth   # шаг 2
 git checkout step-3-api    # шаг 3
 git checkout step-4-spa    # шаги 4–5 (шаблон и статика)
 git checkout step-5-accounts # статья №2: регистрация, сброс пароля, роли
+git checkout step-6-api      # статья №3: фильтры, пагинация, ошибки, отладка
 git checkout main          # шаги 5–6 до конца
 ```
 
@@ -163,7 +165,7 @@ GET `/admin`, `membersOnly`: graphql-узел берёт профиль чита
 
 ## Шаг 6. Данные
 
-Сеем читателя и книги. Пароль `reader-chitalka-2026` хешируется полем `bcrypt` автоматически — в сиде лежит plaintext:
+Сеем читателя и книги. Пароль `chitalka-2026` хешируется полем `bcrypt` автоматически — в сиде лежит plaintext:
 
 ```bash
 flowctl entity create member seed/reader.json
@@ -171,6 +173,12 @@ flowctl entity create book seed/book1.json
 flowctl entity create book seed/book2.json
 flowctl entity create book seed/book3.json
 flowctl entity create book seed/book4.json
+flowctl entity create book seed/book5.json
+flowctl entity create book seed/book6.json
+flowctl entity create book seed/book7.json
+flowctl entity create book seed/book8.json
+flowctl entity create book seed/book9.json
+flowctl entity create book seed/book10.json
 ```
 
 ## Проверка
@@ -178,7 +186,7 @@ flowctl entity create book seed/book4.json
 Откройте `https://<поддомен>.dynapi.ru/login` и войдите читателем:
 
 - email: `reader@biblio.test`
-- пароль: `reader-chitalka-2026`
+- пароль: `chitalka-2026`
 
 После входа вас перекинет в каталог на `/admin`: добавляйте и удаляйте книги, статусы «В наличии» / «На руках» — из сеяных данных. Разлогиниться — «Выйти» в шапке. Попытка открыть `/admin` или `/api/books` без сессии вернёт на страницу входа.
 

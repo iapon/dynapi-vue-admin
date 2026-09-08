@@ -44,9 +44,12 @@
           "action_type": "graphql",
           "on_error": "stop",
           "config": {
-            "query": "query {\n  books(limit: 200, orderBy: [{field: CREATED_AT, direction: DESC}]) {\n    id title author year status\n  }\n}",
-            "variables": {},
-            "result_key": "books",
+            "query": "{% assign page = query.page | plus: 0 %}{% if page < 1 %}{% assign page = 1 %}{% endif %}{% assign offset = page | minus: 1 | times: 5 %}{% if query.sort == \"title\" %}{% assign field = \"TITLE\" %}{% elsif query.sort == \"author\" %}{% assign field = \"AUTHOR\" %}{% else %}{% assign field = \"YEAR\" %}{% endif %}query($status: String, $q: String) {\n  books(limit: 5, offset: {{ offset }}, orderBy: [{field: {{ field }}, direction: DESC}], search: $q, where: {status: {eq: $status}}) {\n    id title author year status\n  }\n  booksCount(search: $q, where: {status: {eq: $status}})\n}",
+            "variables": {
+              "status": "{{query.status}}",
+              "q": "{{query.q}}"
+            },
+            "result_key": "q",
             "secret_vars": []
           }
         }
@@ -59,7 +62,7 @@
           "on_error": "continue",
           "config": {
             "status": 200,
-            "body_template": "{{ results.books | json }}"
+            "body_template": "{% assign total = results.q.booksCount | plus: 0 %}{\"items\": {{ results.q.books | json }}, \"total\": {{ total }}, \"pages\": {{ total | plus: 4 | divided_by: 5 }}}"
           }
         }
       }
