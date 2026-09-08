@@ -38,28 +38,28 @@
   <div class="card">
     <h1>Каталог библиотеки</h1>
     <p class="sub">Вход для сотрудников</p>
-    {% if params.failed %}
+    {% if query.failed %}
     <p class="error">Неверный email или пароль.</p>
     {% endif %}
-    {% if params.unverified %}
+    {% if query.unverified %}
     <p class="error">Подтвердите email — ссылка из письма ещё действует 24 часа.</p>
     {% endif %}
-    {% if params.check_email %}
+    {% if query.check_email %}
     <p class="ok">Письмо со ссылкой для подтверждения отправлено. Проверьте почту.</p>
     {% endif %}
-    {% if params.verified == "1" %}
+    {% if query.verified == "1" %}
     <p class="ok">Email подтверждён — теперь можно войти.</p>
     {% endif %}
-    {% if params.verified == "invalid" %}
+    {% if query.verified == "invalid" %}
     <p class="error">Ссылка подтверждения недействительна или устарела. Зарегистрируйтесь заново.</p>
     {% endif %}
-    {% if params.reset == "sent" %}
+    {% if query.reset == "sent" %}
     <p class="ok">Если такой email зарегистрирован, письмо со ссылкой для сброса отправлено.</p>
     {% endif %}
-    {% if params.password == "reset" %}
+    {% if query.password == "reset" %}
     <p class="ok">Пароль обновлён — войдите с новым паролем.</p>
     {% endif %}
-    {% if params.password == "reset_failed" %}
+    {% if query.password == "reset_failed" %}
     <p class="error">Ссылка сброса недействительна или устарела. Запросите новую.</p>
     {% endif %}
     <form method="post" action="/login">
