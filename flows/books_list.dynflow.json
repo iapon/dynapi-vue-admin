@@ -44,7 +44,7 @@
           "action_type": "graphql",
           "on_error": "stop",
           "config": {
-            "query": "{% assign page = query.page | plus: 0 %}{% if page < 1 %}{% assign page = 1 %}{% endif %}{% assign offset = page | minus: 1 | times: 5 %}{% if query.sort == \"title\" %}{% assign field = \"TITLE\" %}{% elsif query.sort == \"author\" %}{% assign field = \"AUTHOR\" %}{% else %}{% assign field = \"YEAR\" %}{% endif %}query($status: String, $q: String) {\n  books(limit: 5, offset: {{ offset }}, orderBy: [{field: {{ field }}, direction: DESC}], search: $q, where: {status: {eq: $status}}) {\n    id title author year status\n  }\n  booksCount(search: $q, where: {status: {eq: $status}})\n}",
+            "query": "{% assign page = query.page | plus: 0 %}{% if page < 1 %}{% assign page = 1 %}{% endif %}{% assign offset = page | minus: 1 | times: 5 %}{% if query.sort == \"title\" %}{% assign field = \"TITLE\" %}{% elsif query.sort == \"author\" %}{% assign field = \"AUTHOR\" %}{% else %}{% assign field = \"YEAR\" %}{% endif %}query($status: String, $q: String) {\n  books(limit: 5, offset: {{ offset }}, orderBy: [{field: {{ field }}, direction: DESC}], search: $q, where: {status: {eq: $status}}) {\n    id title author year status\n    cover { id url }\n  }\n  booksCount(search: $q, where: {status: {eq: $status}})\n}",
             "variables": {
               "status": "{{query.status}}",
               "q": "{{query.q}}"

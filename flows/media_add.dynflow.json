@@ -1,0 +1,115 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-09-08T00:00:00.000Z",
+  "handle": {
+    "slug": "media_add",
+    "name": "Media add by url",
+    "enabled_cors": false,
+    "allowed_origins": []
+  },
+  "routes": [
+    {
+      "path": "/api/media",
+      "methods": ["GET", "POST"],
+      "cache": { "defaultTtl": 0 },
+      "membersOnly": true,
+      "loginPath": "/login",
+      "flows": [
+        { "handle": "media_list", "methods": ["GET"] },
+        { "handle": "media_add", "methods": ["POST"] }
+      ]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      { "id": "n_start", "type": "entry", "data": {} },
+      {
+        "id": "c_url",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              { "field": "json.url", "operator": "matches", "value": "^https://\\S+$" }
+            ]
+          }
+        }
+      },
+      {
+        "id": "c_name",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              { "field": "json.name", "operator": "matches", "value": "\\S" }
+            ]
+          }
+        }
+      },
+      {
+        "id": "a_create",
+        "type": "action",
+        "data": {
+          "action_type": "graphql",
+          "on_error": "stop",
+          "config": {
+            "query": "mutation($name: String!, $url: String!) {\n  createMedia(input: {name: $name, url: $url, type: \"image\"}) {\n    id name url\n  }\n}",
+            "variables": {
+              "name": "{{json.name | strip}}",
+              "url": "{{json.url | strip}}"
+            },
+            "result_key": "created",
+            "secret_vars": []
+          }
+        }
+      },
+      {
+        "id": "a_out",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 201,
+            "body_template": "{\"media\": {{ results.created.createMedia | json }}}"
+          }
+        }
+      },
+      {
+        "id": "a_err_url",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 400,
+            "body_template": "{\"error\": \"VALIDATION\", \"field\": \"url\", \"message\": \"Нужна ссылка https:// на изображение\"}"
+          }
+        }
+      },
+      {
+        "id": "a_err_name",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 400,
+            "body_template": "{\"error\": \"VALIDATION\", \"field\": \"name\", \"message\": \"Дайте файлу имя\"}"
+          }
+        }
+      }
+    ],
+    "edges": [
+      { "from": "n_start", "to": "c_url", "branch": "" },
+      { "from": "c_url", "to": "c_name", "branch": "then" },
+      { "from": "c_url", "to": "a_err_url", "branch": "else" },
+      { "from": "c_name", "to": "a_create", "branch": "then" },
+      { "from": "c_name", "to": "a_err_name", "branch": "else" },
+      { "from": "a_create", "to": "a_out", "branch": "" }
+    ]
+  }
+}

@@ -8,6 +8,7 @@
 - `/logout` — выход;
 - `/api/books`, `/api/books/add`, `/api/books/delete` — JSON-API каталога, только для авторизованных;
 - `/admin` — закрытая админка: Vue SPA, которой сервер при рендере подкладывает профиль читателя в `window.__BOOT__`;
+- обложки книг из медиатеки проекта: тумбы в каталоге, пикер в форме и добавление по ссылке;
 - типы контента `book` и `member`, десять сеяных книг и один читатель.
 
 ## Требования
@@ -32,6 +33,7 @@
 | `step-4-spa` | + шаблон админки `templates/admin.liquid` и исходники Vue-приложения `spa/` |
 | `step-5-accounts` | + аккаунты читателей до конца: регистрация с подтверждением email, сброс пароля по ссылке, поле роли и гейт «удалять может только библиотекарь» (статья №2 журнала) |
 | `step-6-api` | + API со вкусом: фильтры `?status=`/`?q=`, сортировка `?sort=` по белому списку, пагинация по 5 книг с `?page=`, конверт `{items, total, pages}`, валидация POST с 400 по полям (статья №3 журнала) |
+| `step-7-media` | + обложки: поле `cover` у книги, сценарии `/api/media` (список + добавление по ссылке), пикер в форме и тумбы в каталоге (статья №4 журнала) |
 | `main` | + сиды данных `seed/`, сценарий страницы админки `flows/admin_page.dynflow.json`, этот README |
 
 Переключайтесь по мере прохождения:
@@ -42,6 +44,7 @@ git checkout step-3-api    # шаг 3
 git checkout step-4-spa    # шаги 4–5 (шаблон и статика)
 git checkout step-5-accounts # статья №2: регистрация, сброс пароля, роли
 git checkout step-6-api      # статья №3: фильтры, пагинация, ошибки, отладка
+git checkout step-7-media    # статья №4: обложки и медиатека
 git checkout main          # шаги 5–6 до конца
 ```
 
@@ -179,6 +182,36 @@ flowctl entity create book seed/book7.json
 flowctl entity create book seed/book8.json
 flowctl entity create book seed/book9.json
 flowctl entity create book seed/book10.json
+```
+
+## Шаг 7. Обложки и медиатека (статья №4)
+
+Поле для обложки добавляется в редакторе типа `book`: поле `cover`, тип «Тип контента», цель `media`. Затем заливаем обложки из каталога `covers/` в медиатеку и применяем новые сценарии:
+
+```bash
+flowctl media push covers/cover-*.png
+flowctl apply flows/media_list.dynflow.json --publish
+flowctl apply flows/media_add.dynflow.json --publish
+```
+
+`media_list` отдаёт библиотеку (`GET /api/media`), `media_add` принимает ссылку `https://` и создаёт запись через `createMedia` (`POST /api/media`). Оба маршрута — `membersOnly`; они уже описаны в `files/routes.json`, поэтому перекрываем карту целиком:
+
+```bash
+flowctl route save files/routes.json --publish
+```
+
+Сценарии каталога тоже обновились — `books_list` выбирает `cover { id url }`, `books_add` принимает проверенный `cover`-id. Перепримените их:
+
+```bash
+flowctl apply flows/books_list.dynflow.json --publish
+flowctl apply flows/books_add.dynflow.json --publish
+```
+
+Привяжите обложки к книгам: `flowctl entity update book <id книги> '{"cover": "<id записи в медиатеке>"}'`. Напоследок пересоберите и залейте SPA:
+
+```bash
+cd spa && npm run build && cd ..
+flowctl files push spa/dist --as static --publish
 ```
 
 ## Проверка

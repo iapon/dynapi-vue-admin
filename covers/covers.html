@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; background: #222; font-family: Georgia, "Times New Roman", serif; }
+  .row { display: flex; flex-wrap: wrap; gap: 20px; padding: 20px; }
+  .cover {
+    width: 600px; height: 900px; position: relative;
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    padding: 56px 48px; box-sizing: border-box; color: #f3edda;
+  }
+  .frame {
+    position: absolute; inset: 20px; border: 2px solid rgba(243,237,218,.85);
+    outline: 1px solid rgba(243,237,218,.5); outline-offset: 6px; pointer-events: none;
+  }
+  .series { font-size: 20px; letter-spacing: .35em; text-transform: uppercase; opacity: .8; margin-top: 14px; }
+  .title { font-size: 52px; line-height: 1.22; text-align: center; font-weight: 700; margin: 0; }
+  .rule { width: 72px; height: 3px; background: rgba(243,237,218,.85); margin: 26px auto 0; }
+  .author { font-size: 27px; text-align: center; margin: 0; opacity: .95; }
+  .year  { font-size: 20px; letter-spacing: .18em; opacity: .75; }
+</style>
+</head>
+<body>
+<div class="row" id="row">
+  <!-- covers injected -->
+</div>
+<script>
+  const books = [
+    { file: "cover-master-i-margarita",      title: "Мастер\nи Маргарита",            author: "Михаил Булгаков",       year: "1967", bg: "#5b3a44" },
+    { file: "cover-myortvye-dushi",          title: "Мёртвые души",                   author: "Николай Гоголь",        year: "1842", bg: "#3f4a3c" },
+    { file: "cover-dvenadtsat-stulev",       title: "Двенадцать\nстульев",            author: "Илья Ильф,\nЕвгений Петров", year: "1928", bg: "#8a5a2b" },
+    { file: "cover-prestuplenie-i-nakazanie",title: "Преступление\nи наказание",      author: "Фёдор Достоевский",     year: "1866", bg: "#2e3a52" },
+    { file: "cover-anna-karenina",           title: "Анна\nКаренина",                 author: "Лев Толстой",           year: "1878", bg: "#6b4f8a" },
+    { file: "cover-gordost-i-predubezhdenie",title: "Гордость\nи предубеждение",      author: "Джейн Остин",           year: "1813", bg: "#276163" },
+    { file: "cover-geroy-nashego-vremeni",   title: "Герой\nнашего времени",          author: "Михаил Лермонтов",      year: "1840", bg: "#445468" },
+    { file: "cover-kapitanskaya-dochka",     title: "Капитанская\nдочка",             author: "Александр Пушкин",      year: "1836", bg: "#7a3b3b" },
+    { file: "cover-oblonov",                 title: "Обломов",                        author: "Иван Гончаров",         year: "1859", bg: "#556052" },
+    { file: "cover-idiot",                   title: "Идиот",                          author: "Фёдор Достоевский",     year: "1868", bg: "#5d4a32" },
+  ];
+  const row = document.getElementById("row");
+  for (const b of books) {
+    const div = document.createElement("div");
+    div.className = "cover";
+    div.dataset.file = b.file;
+    div.style.background = b.bg;
+    div.innerHTML =
+      '<div class="frame"></div>' +
+      '<div class="series">Библиотека</div>' +
+      '<div style="text-align:center"><h2 class="title">' + b.title.split("\n").join("<br>") + '</h2>' +
+      '<div class="rule"></div></div>' +
+      '<div style="text-align:center"><p class="author">' + b.author.split("\n").join("<br>") + '</p>' +
+      '<p class="year">' + b.year + '</p></div>';
+    row.appendChild(div);
+  }
+  document.title = "ready";
+</script>
+</body>
+</html>

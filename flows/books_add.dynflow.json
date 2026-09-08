@@ -112,18 +112,51 @@
         }
       },
       {
+        "id": "c_cover_present",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              {
+                "field": "json.cover",
+                "operator": "ne",
+                "value": ""
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "c_cover_shape",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              {
+                "field": "json.cover",
+                "operator": "matches",
+                "value": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              }
+            ]
+          }
+        }
+      },
+      {
         "id": "a_create",
         "type": "action",
         "data": {
           "action_type": "graphql",
           "on_error": "stop",
           "config": {
-            "query": "mutation($title: String!, $author: String!, $year: Int, $status: String) {\n  createBook(input: {title: $title, author: $author, year: $year, status: $status}) {\n    id title author year status\n  }\n}",
+            "query": "mutation($title: String!, $author: String!, $year: Int, $status: String, $cover: ID) {\n  createBook(input: {title: $title, author: $author, year: $year, status: $status, cover: $cover}) {\n    id title author year status\n    cover { id url }\n  }\n}",
             "variables": {
               "title": "{{json.title | strip}}",
               "author": "{{json.author | strip}}",
               "year": "{% if json.year == blank %}{% else %}{{ json.year | strip | plus: 0 }}{% endif %}",
-              "status": "{{json.status | default: \"in_stock\"}}"
+              "status": "{{json.status | default: \"in_stock\"}}",
+              "cover": "{{json.cover}}"
             },
             "result_key": "created",
             "secret_vars": []
@@ -139,6 +172,18 @@
           "config": {
             "status": 201,
             "body_template": "{\"book\": {{ results.created.createBook | json }}}"
+          }
+        }
+      },
+      {
+        "id": "a_err_cover",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 400,
+            "body_template": "{\"error\": \"VALIDATION\", \"field\": \"cover\", \"message\": \"Обложка — id записи из медиатеки или пусто\"}"
           }
         }
       },
@@ -212,17 +257,37 @@
       },
       {
         "from": "c_year_present",
-        "to": "a_create",
+        "to": "c_cover_present",
         "branch": "else"
       },
       {
         "from": "c_year_range",
-        "to": "a_create",
+        "to": "c_cover_present",
         "branch": "then"
       },
       {
         "from": "c_year_range",
         "to": "a_err_year",
+        "branch": "else"
+      },
+      {
+        "from": "c_cover_present",
+        "to": "c_cover_shape",
+        "branch": "then"
+      },
+      {
+        "from": "c_cover_present",
+        "to": "a_create",
+        "branch": "else"
+      },
+      {
+        "from": "c_cover_shape",
+        "to": "a_create",
+        "branch": "then"
+      },
+      {
+        "from": "c_cover_shape",
+        "to": "a_err_cover",
         "branch": "else"
       },
       {

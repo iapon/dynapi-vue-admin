@@ -1,28 +1,244 @@
 [
-  { "path": "/login", "methods": ["GET", "POST"], "cache": { "defaultTtl": 0 },
-    "flows": [ { "handle": "login_page", "methods": ["GET"] }, { "handle": "login", "methods": ["POST"] } ] },
-  { "path": "/logout", "methods": ["GET"], "cache": { "defaultTtl": 0 },
-    "flows": [ { "handle": "logout", "methods": ["GET"] } ] },
-  { "path": "/register", "methods": ["GET", "POST"], "cache": { "defaultTtl": 0 },
-    "flows": [ { "handle": "register_page", "methods": ["GET"] }, { "handle": "register", "methods": ["POST"] } ] },
-  { "path": "/verify", "methods": ["GET"], "cache": { "defaultTtl": 0 },
-    "flows": [ { "handle": "verify_page", "methods": ["GET"] } ] },
-  { "path": "/forgot", "methods": ["GET", "POST"], "cache": { "defaultTtl": 0 },
-    "flows": [ { "handle": "forgot_page", "methods": ["GET"] }, { "handle": "forgot_password", "methods": ["POST"] } ] },
-  { "path": "/reset", "methods": ["GET"], "cache": { "defaultTtl": 0 },
-    "flows": [ { "handle": "reset_page", "methods": ["GET"] } ] },
-  { "path": "/reset/complete", "methods": ["POST"], "cache": { "defaultTtl": 0 },
-    "flows": [ { "handle": "reset_complete", "methods": ["POST"] } ] },
-  { "path": "/admin", "methods": ["GET"], "cache": { "defaultTtl": 0 },
-    "membersOnly": true, "loginPath": "/login",
-    "flows": [ { "handle": "admin_page", "methods": ["GET"] } ] },
-  { "path": "/api/books", "methods": ["GET"], "cache": { "defaultTtl": 0 },
-    "membersOnly": true, "loginPath": "/login",
-    "flows": [ { "handle": "books_list", "methods": ["GET"] } ] },
-  { "path": "/api/books/add", "methods": ["POST"], "cache": { "defaultTtl": 0 },
-    "membersOnly": true, "loginPath": "/login",
-    "flows": [ { "handle": "books_add", "methods": ["POST"] } ] },
-  { "path": "/api/books/delete", "methods": ["POST"], "cache": { "defaultTtl": 0 },
-    "membersOnly": true, "loginPath": "/login",
-    "flows": [ { "handle": "books_delete", "methods": ["POST"] } ] }
+  {
+    "path": "/login",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "flows": [
+      {
+        "handle": "login_page",
+        "methods": [
+          "GET"
+        ]
+      },
+      {
+        "handle": "login",
+        "methods": [
+          "POST"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/logout",
+    "methods": [
+      "GET"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "flows": [
+      {
+        "handle": "logout",
+        "methods": [
+          "GET"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/register",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "flows": [
+      {
+        "handle": "register_page",
+        "methods": [
+          "GET"
+        ]
+      },
+      {
+        "handle": "register",
+        "methods": [
+          "POST"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/verify",
+    "methods": [
+      "GET"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "flows": [
+      {
+        "handle": "verify_page",
+        "methods": [
+          "GET"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/forgot",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "flows": [
+      {
+        "handle": "forgot_page",
+        "methods": [
+          "GET"
+        ]
+      },
+      {
+        "handle": "forgot_password",
+        "methods": [
+          "POST"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/reset",
+    "methods": [
+      "GET"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "flows": [
+      {
+        "handle": "reset_page",
+        "methods": [
+          "GET"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/reset/complete",
+    "methods": [
+      "POST"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "flows": [
+      {
+        "handle": "reset_complete",
+        "methods": [
+          "POST"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/admin",
+    "methods": [
+      "GET"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "membersOnly": true,
+    "loginPath": "/login",
+    "flows": [
+      {
+        "handle": "admin_page",
+        "methods": [
+          "GET"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/api/books",
+    "methods": [
+      "GET"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "membersOnly": true,
+    "loginPath": "/login",
+    "flows": [
+      {
+        "handle": "books_list",
+        "methods": [
+          "GET"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/api/media",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "membersOnly": true,
+    "loginPath": "/login",
+    "flows": [
+      {
+        "handle": "media_list",
+        "methods": [
+          "GET"
+        ]
+      },
+      {
+        "handle": "media_add",
+        "methods": [
+          "POST"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/api/books/add",
+    "methods": [
+      "POST"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "membersOnly": true,
+    "loginPath": "/login",
+    "flows": [
+      {
+        "handle": "books_add",
+        "methods": [
+          "POST"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/api/books/delete",
+    "methods": [
+      "POST"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "membersOnly": true,
+    "loginPath": "/login",
+    "flows": [
+      {
+        "handle": "books_delete",
+        "methods": [
+          "POST"
+        ]
+      }
+    ]
+  }
 ]

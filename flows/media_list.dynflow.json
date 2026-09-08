@@ -1,0 +1,59 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-09-08T00:00:00.000Z",
+  "handle": {
+    "slug": "media_list",
+    "name": "Media list",
+    "enabled_cors": false,
+    "allowed_origins": []
+  },
+  "routes": [
+    {
+      "path": "/api/media",
+      "methods": ["GET", "POST"],
+      "cache": { "defaultTtl": 0 },
+      "membersOnly": true,
+      "loginPath": "/login",
+      "flows": [
+        { "handle": "media_list", "methods": ["GET"] },
+        { "handle": "media_add", "methods": ["POST"] }
+      ]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      { "id": "n_start", "type": "entry", "data": {} },
+      {
+        "id": "a_q",
+        "type": "action",
+        "data": {
+          "action_type": "graphql",
+          "on_error": "stop",
+          "config": {
+            "query": "query {\n  medias(limit: 60, orderBy: [{field: CREATED_AT, direction: DESC}]) {\n    id name url type width height\n  }\n}",
+            "result_key": "q",
+            "secret_vars": []
+          }
+        }
+      },
+      {
+        "id": "a_out",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 200,
+            "body_template": "{\"items\": {{ results.q.medias | json }}}"
+          }
+        }
+      }
+    ],
+    "edges": [
+      { "from": "n_start", "to": "a_q", "branch": "" },
+      { "from": "a_q", "to": "a_out", "branch": "" }
+    ]
+  }
+}

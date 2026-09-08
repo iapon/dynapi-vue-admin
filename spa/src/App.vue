@@ -7,6 +7,13 @@ interface Book {
   author: string;
   year: number | null;
   status: string;
+  cover?: { id: string; url: string } | null;
+}
+
+interface MediaItem {
+  id: string;
+  name: string;
+  url: string;
 }
 
 interface Page {
@@ -44,9 +51,62 @@ const page = ref(1);
 const loading = ref(true);
 const error = ref("");
 const adding = ref(false);
-const form = ref({ title: "", author: "", year: "" });
+const form = ref({ title: "", author: "", year: "", cover: "" });
 const serverMessage = ref("");
 const invalidField = ref("");
+
+// Медиатека проекта: то же хранилище, что и «Медиа» в админке платформы.
+const covers = ref<MediaItem[]>([]);
+const byUrl = ref({ url: "", name: "" });
+const addingUrl = ref(false);
+
+async function loadCovers() {
+  try {
+    const res = await fetch("/api/media", { headers: { Accept: "application/json" } });
+    if (res.redirected || res.status === 302) {
+      window.location.href = "/login";
+      return;
+    }
+    if (!res.ok) return;
+    const data = await res.json();
+    covers.value = data.items ?? [];
+  } catch {
+    /* библиотека не ответила — пикер просто останется пустым */
+  }
+}
+
+// «cover-master…png» → «master i margarita»: имя файла в читабельный подпись.
+function coverLabel(m: MediaItem): string {
+  return m.name.replace(/\.[a-z0-9]+$/i, "").replace(/^cover[-_]/, "").replace(/[-_]+/g, " ");
+}
+
+async function addByUrl() {
+  addingUrl.value = true;
+  serverMessage.value = "";
+  try {
+    const res = await fetch("/api/media", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ url: byUrl.value.url.trim(), name: byUrl.value.name.trim() }),
+    });
+    if (res.redirected || res.status === 302) {
+      window.location.href = "/login";
+      return;
+    }
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      serverMessage.value = data?.message ?? "Не удалось добавить обложку.";
+      return;
+    }
+    byUrl.value = { url: "", name: "" };
+    await loadCovers();
+    if (data?.media?.id) form.value.cover = data.media.id;
+  } catch {
+    serverMessage.value = "Не удалось добавить обложку.";
+  } finally {
+    addingUrl.value = false;
+  }
+}
 
 // Параметры каталога — всё уезжает в строку запроса эндпоинта.
 const query = ref({ q: "", status: "", sort: "" });
@@ -122,6 +182,7 @@ async function add() {
         title: form.value.title,
         author: form.value.author,
         year: form.value.year ? Number(form.value.year) : null,
+        cover: form.value.cover || null,
       }),
     });
     if (res.redirected || res.status === 302) {
@@ -140,7 +201,7 @@ async function add() {
       }
       return;
     }
-    form.value = { title: "", author: "", year: "" };
+    form.value = { title: "", author: "", year: "", cover: "" };
     page.value = 1;
     await load();
   } catch {
@@ -177,7 +238,10 @@ function statusLabel(status: string): string {
   return status === "on_loan" ? "На руках" : "В наличии";
 }
 
-onMounted(load);
+onMounted(() => {
+  load();
+  loadCovers();
+});
 </script>
 
 <template>
@@ -201,7 +265,17 @@ onMounted(load);
         <input v-model="form.title" :class="fieldClass('title')" placeholder="Название" />
         <input v-model="form.author" :class="fieldClass('author')" placeholder="Автор" />
         <input v-model="form.year" :class="fieldClass('year')" placeholder="Год" inputmode="numeric" />
+        <select v-model="form.cover" class="sel cover-sel" :class="fieldClass('cover')">
+          <option value="">Без обложки</option>
+          <option v-for="m in covers" :key="m.id" :value="m.id">{{ coverLabel(m) }}</option>
+        </select>
         <button type="submit" :disabled="adding">Добавить</button>
+      </form>
+      <form class="by-url" @submit.prevent="addByUrl">
+        <span class="muted">Нет файла в библиотеке?</span>
+        <input v-model="byUrl.url" placeholder="https://… ссылка на картинку" />
+        <input v-model="byUrl.name" placeholder="Имя в библиотеке" />
+        <button type="submit" :disabled="addingUrl">В библиотеку</button>
       </form>
     </section>
 
@@ -233,6 +307,7 @@ onMounted(load);
       <table v-else class="books">
         <thead>
           <tr>
+            <th></th>
             <th>Название</th>
             <th>Автор</th>
             <th class="num">Год</th>
@@ -242,6 +317,10 @@ onMounted(load);
         </thead>
         <tbody>
           <tr v-for="b in books" :key="b.id">
+            <td class="cover-cell">
+              <img v-if="b.cover" class="cover-thumb" :src="b.cover.url" :alt="`Обложка: ${b.title}`" />
+              <span v-else class="cover-none" :title="'Обложка не назначена'"></span>
+            </td>
             <td class="title">{{ b.title }}</td>
             <td>{{ b.author }}</td>
             <td class="num">{{ b.year ?? "—" }}</td>
@@ -296,13 +375,28 @@ h2 { margin: 0; font-size: 14px; color: var(--muted); font-weight: 600; }
           border: 1px solid var(--border-strong); border-radius: 8px; }
 .sel { padding: 8px 8px; font-size: 13px; background: var(--panel); color: var(--text);
        border: 1px solid var(--border-strong); border-radius: 8px; }
-.form { display: grid; grid-template-columns: 2fr 2fr 1fr auto; gap: 8px; }
-.form input { padding: 9px 10px; font-size: 14px; background: var(--panel); color: var(--text);
+.form { display: flex; flex-wrap: wrap; gap: 8px; }
+.form input, .form select { padding: 9px 10px; font-size: 14px; background: var(--panel); color: var(--text);
               border: 1px solid var(--border-strong); border-radius: 8px; }
-.form input.invalid { border-color: var(--danger); background: var(--invalid); }
+.form input { flex: 1 1 170px; min-width: 0; }
+.form input[placeholder="Год"] { flex: 0 0 90px; }
+.form .cover-sel { order: 5; flex: 1 1 100%; }
+.form button { order: 4; }
+.form input.invalid, .form select.invalid { border-color: var(--danger); background: var(--invalid); }
+.by-url { display: grid; grid-template-columns: auto 2fr 1.4fr auto; gap: 8px; align-items: center; margin-top: 10px;
+          padding-top: 12px; border-top: 1px dashed var(--border); }
+.by-url input { padding: 7px 10px; font-size: 13px; background: var(--panel); color: var(--text);
+                border: 1px solid var(--border-strong); border-radius: 8px; }
+.by-url button { padding: 7px 12px; font-size: 13px; font-weight: 600; color: var(--primary); background: transparent;
+                 border: 1px solid var(--border-strong); border-radius: 8px; cursor: pointer; }
 .form button, .del { padding: 9px 14px; font-size: 13px; font-weight: 600; color: #fff; background: var(--primary); border: 0; border-radius: 8px; cursor: pointer; }
 .del { background: transparent; color: var(--danger); padding: 4px 8px; }
 .books { width: 100%; border-collapse: collapse; font-size: 14px; }
+.cover-cell { width: 44px; padding-right: 0 !important; }
+.cover-thumb { width: 36px; height: 52px; object-fit: cover; border-radius: 4px; display: block;
+               border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+.cover-none { width: 36px; height: 52px; border-radius: 4px; display: block;
+              border: 1px dashed var(--border-strong); background: var(--row-line); }
 .books th { text-align: left; font-size: 12px; color: var(--muted); padding: 8px 8px 8px 0; border-bottom: 1px solid var(--border); }
 .books td { padding: 10px 8px 10px 0; border-bottom: 1px solid var(--row-line); }
 .books tr:last-child td { border-bottom: 0; }
