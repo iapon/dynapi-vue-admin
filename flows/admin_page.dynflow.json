@@ -1,7 +1,7 @@
 {
   "format": "dynapi-flow",
   "version": 1,
-  "exportedAt": "2026-09-07T00:00:00.000Z",
+  "exportedAt": "2026-09-08T00:00:00.000Z",
   "handle": {
     "slug": "admin_page",
     "name": "Admin page",
@@ -79,5 +79,10 @@
     ]
   },
   "queries": [],
-  "templates": []
+  "templates": [
+    {
+      "path": "admin.liquid",
+      "content": "<!doctype html>\n<html lang=\"ru\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Каталог — Библиотека</title>\n  <link rel=\"stylesheet\" href=\"/static/admin.css?v={{ site.version }}\">\n</head>\n<body>\n  <div id=\"app\"></div>\n  <script>\n    // Boot payload: собран сервером до рендера шаблона.\n    // member — сессия из куки, email — результат graphql-узла сценария.\n    window.__BOOT__ = {\n      member: {{ member | json }},\n      email: {{ results.me.members[0].email | json }}\n    };\n  </script>\n  <script type=\"module\" src=\"/static/admin.js?v={{ site.version }}\"></script>\n</body>\n</html>\n"
+    }
+  ]
 }

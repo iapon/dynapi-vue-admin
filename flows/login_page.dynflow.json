@@ -1,7 +1,7 @@
 {
   "format": "dynapi-flow",
   "version": 1,
-  "exportedAt": "2026-09-07T00:00:00.000Z",
+  "exportedAt": "2026-09-08T00:00:00.000Z",
   "handle": {
     "slug": "login_page",
     "name": "Login page",
@@ -56,5 +56,10 @@
     ]
   },
   "queries": [],
-  "templates": []
+  "templates": [
+    {
+      "path": "login.liquid",
+      "content": "<!doctype html>\n<html lang=\"ru\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Вход — Библиотека</title>\n  <style>\n    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;\n           font-family: system-ui, -apple-system, \"Segoe UI\", sans-serif; background: #f4f5f8; color: #1a2233; }\n    .card { width: 340px; background: #fff; border: 1px solid #e3e6ee; border-radius: 12px; padding: 28px; }\n    h1 { font-size: 18px; margin: 0 0 4px; }\n    p.sub { font-size: 13px; color: #66708a; margin: 0 0 20px; }\n    label { display: block; font-size: 12px; font-weight: 600; margin: 12px 0 4px; }\n    input { width: 100%; box-sizing: border-box; padding: 9px 10px; font-size: 14px;\n            border: 1px solid #ccd2e0; border-radius: 8px; }\n    button { width: 100%; margin-top: 18px; padding: 10px; font-size: 14px; font-weight: 600;\n             color: #fff; background: #5564f9; border: 0; border-radius: 8px; cursor: pointer; }\n    .error { margin: 0 0 12px; font-size: 13px; color: #b3261e; }\n    .ok { margin: 0 0 12px; font-size: 13px; color: #1b7f4d; }\n    .links { margin: 14px 0 0; font-size: 13px; display: flex; justify-content: space-between; }\n    .links a { color: #5564f9; text-decoration: none; }\n  \n    @media (prefers-color-scheme: dark) {\n      :root { --bg: #0d1528; --panel: #16203a; --text: #e8ebf4; --muted: #97a2bf;\n              --border: #273352; --border-strong: #38466e; --primary: #7c89ff;\n              --ok: #67d98c; --danger: #ff8a80; }\n      body { background: var(--bg); color: var(--text); }\n      .card { background: var(--panel); border-color: var(--border); }\n      .sub, label { color: var(--muted); }\n      input { background: #101a31; color: var(--text); border-color: var(--border-strong); }\n      .error { color: var(--danger); }\n      .ok { color: var(--ok); }\n      a { color: var(--primary); }\n    }\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <h1>Каталог библиотеки</h1>\n    <p class=\"sub\">Вход для сотрудников</p>\n    {% if params.failed %}\n    <p class=\"error\">Неверный email или пароль.</p>\n    {% endif %}\n    {% if params.unverified %}\n    <p class=\"error\">Подтвердите email — ссылка из письма ещё действует 24 часа.</p>\n    {% endif %}\n    {% if params.check_email %}\n    <p class=\"ok\">Письмо со ссылкой для подтверждения отправлено. Проверьте почту.</p>\n    {% endif %}\n    {% if params.verified == \"1\" %}\n    <p class=\"ok\">Email подтверждён — теперь можно войти.</p>\n    {% endif %}\n    {% if params.verified == \"invalid\" %}\n    <p class=\"error\">Ссылка подтверждения недействительна или устарела. Зарегистрируйтесь заново.</p>\n    {% endif %}\n    {% if params.reset == \"sent\" %}\n    <p class=\"ok\">Если такой email зарегистрирован, письмо со ссылкой для сброса отправлено.</p>\n    {% endif %}\n    {% if params.password == \"reset\" %}\n    <p class=\"ok\">Пароль обновлён — войдите с новым паролем.</p>\n    {% endif %}\n    {% if params.password == \"reset_failed\" %}\n    <p class=\"error\">Ссылка сброса недействительна или устарела. Запросите новую.</p>\n    {% endif %}\n    <form method=\"post\" action=\"/login\">\n      <label for=\"email\">Email</label>\n      <input id=\"email\" name=\"email\" type=\"email\" required autocomplete=\"username\">\n      <label for=\"password\">Пароль</label>\n      <input id=\"password\" name=\"password\" type=\"password\" required autocomplete=\"current-password\">\n      <button type=\"submit\">Войти</button>\n    </form>\n    <div class=\"links\">\n      <a href=\"/forgot\">Забыли пароль?</a>\n      <a href=\"/register\">Регистрация</a>\n    </div>\n  </div>\n</body>\n</html>\n"
+    }
+  ]
 }

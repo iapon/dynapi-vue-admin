@@ -1,0 +1,129 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-09-08T00:00:00.000Z",
+  "handle": {
+    "slug": "reset_page",
+    "name": "Reset page",
+    "enabled_cors": false,
+    "allowed_origins": []
+  },
+  "routes": [
+    {
+      "path": "/reset",
+      "methods": [
+        "GET"
+      ],
+      "cache": {
+        "defaultTtl": 0
+      },
+      "flows": [
+        {
+          "handle": "reset_page",
+          "methods": [
+            "GET"
+          ]
+        }
+      ]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      {
+        "id": "n_start",
+        "type": "entry",
+        "data": {}
+      },
+      {
+        "id": "a_fetch",
+        "type": "action",
+        "data": {
+          "action_type": "graphql",
+          "on_error": "continue",
+          "config": {
+            "query": "query($id: ID!) {\n  member(id: $id) {\n    id password\n  }\n}",
+            "variables": {
+              "id": "{{ token_subject }}"
+            },
+            "result_key": "m",
+            "secret_vars": [
+              "password"
+            ]
+          }
+        }
+      },
+      {
+        "id": "c_valid",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              {
+                "field": "query.token",
+                "operator": "token_valid",
+                "value": "reset|{{results.m.member.password}}"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "a_form",
+        "type": "action",
+        "data": {
+          "action_type": "render",
+          "on_error": "continue",
+          "config": {
+            "template": "reset_form.liquid"
+          }
+        }
+      },
+      {
+        "id": "a_bad",
+        "type": "action",
+        "data": {
+          "action_type": "render",
+          "on_error": "continue",
+          "config": {
+            "template": "reset_invalid.liquid"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "n_start",
+        "to": "a_fetch",
+        "branch": ""
+      },
+      {
+        "from": "a_fetch",
+        "to": "c_valid",
+        "branch": ""
+      },
+      {
+        "from": "c_valid",
+        "to": "a_form",
+        "branch": "then"
+      },
+      {
+        "from": "c_valid",
+        "to": "a_bad",
+        "branch": "else"
+      }
+    ]
+  },
+  "queries": [],
+  "templates": [
+    {
+      "path": "reset_form.liquid",
+      "content": "<!doctype html>\n<html lang=\"ru\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Новый пароль — Библиотека</title>\n  <style>\n    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;\n           font-family: system-ui, -apple-system, \"Segoe UI\", sans-serif; background: #f4f5f8; color: #1a2233; }\n    .card { width: 340px; background: #fff; border: 1px solid #e3e6ee; border-radius: 12px; padding: 28px; }\n    h1 { font-size: 18px; margin: 0 0 4px; }\n    p.sub { font-size: 13px; color: #66708a; margin: 0 0 20px; }\n    label { display: block; font-size: 12px; font-weight: 600; margin: 12px 0 4px; }\n    input { width: 100%; box-sizing: border-box; padding: 9px 10px; font-size: 14px;\n            border: 1px solid #ccd2e0; border-radius: 8px; }\n    button { width: 100%; margin-top: 18px; padding: 10px; font-size: 14px; font-weight: 600;\n             color: #fff; background: #5564f9; border: 0; border-radius: 8px; cursor: pointer; }\n  \n    @media (prefers-color-scheme: dark) {\n      :root { --bg: #0d1528; --panel: #16203a; --text: #e8ebf4; --muted: #97a2bf;\n              --border: #273352; --border-strong: #38466e; --primary: #7c89ff;\n              --ok: #67d98c; --danger: #ff8a80; }\n      body { background: var(--bg); color: var(--text); }\n      .card { background: var(--panel); border-color: var(--border); }\n      .sub, label { color: var(--muted); }\n      input { background: #101a31; color: var(--text); border-color: var(--border-strong); }\n      .error { color: var(--danger); }\n      .ok { color: var(--ok); }\n      a { color: var(--primary); }\n    }\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <h1>Каталог библиотеки</h1>\n    <p class=\"sub\">Новый пароль</p>\n    <form method=\"post\" action=\"/reset/complete\">\n      <input type=\"hidden\" name=\"member_id\" value=\"{{ token_subject }}\">\n      <input type=\"hidden\" name=\"token\" value=\"{{ query.token }}\">\n      <label for=\"password\">Новый пароль</label>\n      <input id=\"password\" name=\"password\" type=\"password\" required minlength=\"8\" autocomplete=\"new-password\">\n      <button type=\"submit\">Сохранить пароль</button>\n    </form>\n  </div>\n</body>\n</html>\n"
+    },
+    {
+      "path": "reset_invalid.liquid",
+      "content": "<!doctype html>\n<html lang=\"ru\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Ссылка недействительна — Библиотека</title>\n  <style>\n    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;\n           font-family: system-ui, -apple-system, \"Segoe UI\", sans-serif; background: #f4f5f8; color: #1a2233; }\n    .card { width: 340px; background: #fff; border: 1px solid #e3e6ee; border-radius: 12px; padding: 28px; text-align: center; }\n    h1 { font-size: 16px; margin: 0 0 6px; }\n    p { font-size: 13px; color: #66708a; margin: 0 0 16px; }\n    a { color: #5564f9; text-decoration: none; font-size: 14px; }\n  \n    @media (prefers-color-scheme: dark) {\n      :root { --bg: #0d1528; --panel: #16203a; --text: #e8ebf4; --muted: #97a2bf;\n              --border: #273352; --border-strong: #38466e; --primary: #7c89ff;\n              --ok: #67d98c; --danger: #ff8a80; }\n      body { background: var(--bg); color: var(--text); }\n      .card { background: var(--panel); border-color: var(--border); }\n      .sub, label { color: var(--muted); }\n      input { background: #101a31; color: var(--text); border-color: var(--border-strong); }\n      .error { color: var(--danger); }\n      .ok { color: var(--ok); }\n      a { color: var(--primary); }\n    }\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <h1>Ссылка недействительна или устарела</h1>\n    <p>Запросите новую — предыдущая уже использована или истекла.</p>\n    <a href=\"/forgot\">Запросить сброс заново</a>\n  </div>\n</body>\n</html>\n"
+    }
+  ]
+}

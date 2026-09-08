@@ -1,0 +1,145 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-09-08T00:00:00.000Z",
+  "handle": {
+    "slug": "reset_complete",
+    "name": "Reset complete",
+    "enabled_cors": false,
+    "allowed_origins": []
+  },
+  "routes": [
+    {
+      "path": "/reset/complete",
+      "methods": [
+        "POST"
+      ],
+      "cache": {
+        "defaultTtl": 0
+      },
+      "flows": [
+        {
+          "handle": "reset_complete",
+          "methods": [
+            "POST"
+          ]
+        }
+      ]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      {
+        "id": "n_start",
+        "type": "entry",
+        "data": {}
+      },
+      {
+        "id": "a_fetch",
+        "type": "action",
+        "data": {
+          "action_type": "graphql",
+          "on_error": "continue",
+          "config": {
+            "query": "query($id: ID!) {\n  member(id: $id) {\n    id password\n  }\n}",
+            "variables": {
+              "id": "{{form.member_id}}"
+            },
+            "result_key": "m",
+            "secret_vars": [
+              "password"
+            ]
+          }
+        }
+      },
+      {
+        "id": "c_valid",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              {
+                "field": "form.token",
+                "operator": "token_valid",
+                "value": "reset|{{results.m.member.password}}"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "a_update",
+        "type": "action",
+        "data": {
+          "action_type": "graphql",
+          "on_error": "continue",
+          "config": {
+            "query": "mutation($id: ID!, $new: String!) {\n  updateMember(id: $id, input: {password: $new}) {\n    id\n  }\n}",
+            "variables": {
+              "id": "{{form.member_id}}",
+              "new": "{{form.password}}"
+            },
+            "secret_vars": [
+              "password"
+            ]
+          }
+        }
+      },
+      {
+        "id": "a_ok",
+        "type": "action",
+        "data": {
+          "action_type": "redirect",
+          "on_error": "continue",
+          "config": {
+            "location": "/login?password=reset",
+            "status": 303
+          }
+        }
+      },
+      {
+        "id": "a_bad",
+        "type": "action",
+        "data": {
+          "action_type": "redirect",
+          "on_error": "continue",
+          "config": {
+            "location": "/login?password=reset_failed",
+            "status": 303
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "n_start",
+        "to": "a_fetch",
+        "branch": ""
+      },
+      {
+        "from": "a_fetch",
+        "to": "c_valid",
+        "branch": ""
+      },
+      {
+        "from": "c_valid",
+        "to": "a_update",
+        "branch": "then"
+      },
+      {
+        "from": "a_update",
+        "to": "a_ok",
+        "branch": ""
+      },
+      {
+        "from": "c_valid",
+        "to": "a_bad",
+        "branch": "else"
+      }
+    ]
+  },
+  "queries": [],
+  "templates": []
+}

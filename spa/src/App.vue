@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 
 interface Book {
   id: string;
@@ -9,10 +9,28 @@ interface Book {
   status: string;
 }
 
+interface MemberSession {
+  id: string;
+  name?: string | null;
+  role?: string | null;
+}
+
 // Данные, которые сервер вложил в страницу при заходе (шаблон admin.liquid):
-// сессия из куки и профиль из graphql-узла сценария. Отдельный whoami-запрос
-// не нужен.
-const boot = (window as unknown as { __BOOT__?: { email?: string | null } }).__BOOT__ ?? {};
+// member — сессия из куки (id, name, role), email — результат graphql-узла
+// сценария. Отдельный whoami-запрос не нужен.
+const boot =
+  (window as unknown as { __BOOT__?: { member?: MemberSession | null; email?: string | null } })
+    .__BOOT__ ?? {};
+
+const roleLabels: Record<string, string> = {
+  reader: "Читатель",
+  librarian: "Библиотекарь",
+};
+
+const memberName = computed(() => boot.member?.name || boot.email || "сотрудник");
+const memberRole = computed(() => roleLabels[boot.member?.role ?? ""] ?? "Читатель");
+// Права видны из сессии: кнопку удаления рисуем только библиотекарю.
+const isLibrarian = computed(() => boot.member?.role === "librarian");
 
 const books = ref<Book[]>([]);
 const loading = ref(true);
@@ -26,7 +44,7 @@ async function load() {
   error.value = "";
   try {
     const res = await fetch("/api/books", { headers: { Accept: "application/json" } });
-    if (res.redirected || res.status === 403 || res.status === 302) {
+    if (res.redirected || res.status === 302) {
       window.location.href = "/login";
       return;
     }
@@ -54,7 +72,7 @@ async function add() {
         year: form.value.year ? Number(form.value.year) : null,
       }),
     });
-    if (res.redirected || res.status === 403) {
+    if (res.redirected || res.status === 302) {
       window.location.href = "/login";
       return;
     }
@@ -76,8 +94,14 @@ async function remove(id: string) {
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ id }),
     });
-    if (res.redirected || res.status === 403) {
+    if (res.redirected || res.status === 302) {
       window.location.href = "/login";
+      return;
+    }
+    if (res.status === 403) {
+      // Сценарий ответил отказом по роли — это не потеря сессии.
+      const data = await res.json().catch(() => null);
+      error.value = data?.message ?? "Недостаточно прав.";
       return;
     }
     if (!res.ok) throw new Error(`${res.status}`);
@@ -102,7 +126,7 @@ onMounted(load);
         <h1>Каталог книг</h1>
       </div>
       <div>
-        <span class="who">{{ boot.email || "сотрудник" }}</span>
+        <span class="who">{{ memberName }} · {{ memberRole }}</span>
         <a class="logout" href="/logout">Выйти</a>
       </div>
     </header>
@@ -144,7 +168,7 @@ onMounted(load);
               </span>
             </td>
             <td class="num">
-              <button class="del" @click="remove(b.id)">Удалить</button>
+              <button v-if="isLibrarian" class="del" @click="remove(b.id)">Удалить</button>
             </td>
           </tr>
         </tbody>

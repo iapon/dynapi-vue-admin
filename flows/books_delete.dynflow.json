@@ -1,7 +1,7 @@
 {
   "format": "dynapi-flow",
   "version": 1,
-  "exportedAt": "2026-09-07T00:00:00.000Z",
+  "exportedAt": "2026-09-08T00:00:00.000Z",
   "handle": {
     "slug": "books_delete",
     "name": "Books delete",
@@ -38,6 +38,22 @@
         "data": {}
       },
       {
+        "id": "c_role",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              {
+                "field": "member.role",
+                "operator": "eq",
+                "value": "librarian"
+              }
+            ]
+          }
+        }
+      },
+      {
         "id": "a_delete",
         "type": "action",
         "data": {
@@ -64,18 +80,40 @@
             "body_template": "{\"ok\": true}"
           }
         }
+      },
+      {
+        "id": "a_forbidden",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 403,
+            "body_template": "{\"error\": \"FORBIDDEN_ROLE\", \"message\": \"Удалять книги может только библиотекарь\"}"
+          }
+        }
       }
     ],
     "edges": [
       {
         "from": "n_start",
-        "to": "a_delete",
+        "to": "c_role",
         "branch": ""
+      },
+      {
+        "from": "c_role",
+        "to": "a_delete",
+        "branch": "then"
       },
       {
         "from": "a_delete",
         "to": "a_out",
         "branch": ""
+      },
+      {
+        "from": "c_role",
+        "to": "a_forbidden",
+        "branch": "else"
       }
     ]
   },

@@ -16,6 +16,22 @@
     button { width: 100%; margin-top: 18px; padding: 10px; font-size: 14px; font-weight: 600;
              color: #fff; background: #5564f9; border: 0; border-radius: 8px; cursor: pointer; }
     .error { margin: 0 0 12px; font-size: 13px; color: #b3261e; }
+    .ok { margin: 0 0 12px; font-size: 13px; color: #1b7f4d; }
+    .links { margin: 14px 0 0; font-size: 13px; display: flex; justify-content: space-between; }
+    .links a { color: #5564f9; text-decoration: none; }
+  
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #0d1528; --panel: #16203a; --text: #e8ebf4; --muted: #97a2bf;
+              --border: #273352; --border-strong: #38466e; --primary: #7c89ff;
+              --ok: #67d98c; --danger: #ff8a80; }
+      body { background: var(--bg); color: var(--text); }
+      .card { background: var(--panel); border-color: var(--border); }
+      .sub, label { color: var(--muted); }
+      input { background: #101a31; color: var(--text); border-color: var(--border-strong); }
+      .error { color: var(--danger); }
+      .ok { color: var(--ok); }
+      a { color: var(--primary); }
+    }
   </style>
 </head>
 <body>
@@ -25,6 +41,27 @@
     {% if params.failed %}
     <p class="error">Неверный email или пароль.</p>
     {% endif %}
+    {% if params.unverified %}
+    <p class="error">Подтвердите email — ссылка из письма ещё действует 24 часа.</p>
+    {% endif %}
+    {% if params.check_email %}
+    <p class="ok">Письмо со ссылкой для подтверждения отправлено. Проверьте почту.</p>
+    {% endif %}
+    {% if params.verified == "1" %}
+    <p class="ok">Email подтверждён — теперь можно войти.</p>
+    {% endif %}
+    {% if params.verified == "invalid" %}
+    <p class="error">Ссылка подтверждения недействительна или устарела. Зарегистрируйтесь заново.</p>
+    {% endif %}
+    {% if params.reset == "sent" %}
+    <p class="ok">Если такой email зарегистрирован, письмо со ссылкой для сброса отправлено.</p>
+    {% endif %}
+    {% if params.password == "reset" %}
+    <p class="ok">Пароль обновлён — войдите с новым паролем.</p>
+    {% endif %}
+    {% if params.password == "reset_failed" %}
+    <p class="error">Ссылка сброса недействительна или устарела. Запросите новую.</p>
+    {% endif %}
     <form method="post" action="/login">
       <label for="email">Email</label>
       <input id="email" name="email" type="email" required autocomplete="username">
@@ -32,6 +69,10 @@
       <input id="password" name="password" type="password" required autocomplete="current-password">
       <button type="submit">Войти</button>
     </form>
+    <div class="links">
+      <a href="/forgot">Забыли пароль?</a>
+      <a href="/register">Регистрация</a>
+    </div>
   </div>
 </body>
 </html>

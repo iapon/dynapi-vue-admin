@@ -30,6 +30,7 @@
 | `step-2-auth` | пресет `login`, сценарии `/login` и `/logout`, шаблон страницы входа |
 | `step-3-api` | + сценарии JSON-API (`books_list` / `books_add` / `books_delete`) и полная карта маршрутов `files/routes.json` |
 | `step-4-spa` | + шаблон админки `templates/admin.liquid` и исходники Vue-приложения `spa/` |
+| `step-5-accounts` | + аккаунты читателей до конца: регистрация с подтверждением email, сброс пароля по ссылке, поле роли и гейт «удалять может только библиотекарь» (статья №2 журнала) |
 | `main` | + сиды данных `seed/`, сценарий страницы админки `flows/admin_page.dynflow.json`, этот README |
 
 Переключайтесь по мере прохождения:
@@ -38,6 +39,7 @@
 git checkout step-2-auth   # шаг 2
 git checkout step-3-api    # шаг 3
 git checkout step-4-spa    # шаги 4–5 (шаблон и статика)
+git checkout step-5-accounts # статья №2: регистрация, сброс пароля, роли
 git checkout main          # шаги 5–6 до конца
 ```
 
