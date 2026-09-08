@@ -7,6 +7,9 @@ interface Book {
   author: string;
   year: number | null;
   status: string;
+  description?: string | null;
+  // Поле `_locales` приезжает строкой: '{"ru":"…","en":"…"}'.
+  description_locales?: string | null;
   cover?: { id: string; url: string } | null;
 }
 
@@ -44,6 +47,14 @@ const memberRole = computed(() => roleLabels[boot.member?.role ?? ""] ?? "Чит
 // Права видны из сессии: кнопку удаления рисуем только библиотекарю.
 const isLibrarian = computed(() => boot.member?.role === "librarian");
 
+// Язык контента: хранится в localStorage, по умолчанию русский.
+type Lang = "ru" | "en";
+const lang = ref<Lang>(localStorage.getItem("biblio-lang") === "en" ? "en" : "ru");
+function setLang(l: Lang) {
+  lang.value = l;
+  localStorage.setItem("biblio-lang", l);
+}
+
 const books = ref<Book[]>([]);
 const total = ref(0);
 const pages = ref(1);
@@ -51,7 +62,7 @@ const page = ref(1);
 const loading = ref(true);
 const error = ref("");
 const adding = ref(false);
-const form = ref({ title: "", author: "", year: "", cover: "" });
+const form = ref({ title: "", author: "", year: "", cover: "", descriptionRu: "", descriptionEn: "" });
 const serverMessage = ref("");
 const invalidField = ref("");
 
@@ -166,6 +177,18 @@ function goTo(p: number) {
   load();
 }
 
+// Описание книги в выбранном языке: карта локалей с откатом на дефолтную.
+// Пустая строка в карте считается «перевода нет» — берём скаляр.
+function descOf(b: Book): string {
+  let loc: Record<string, string> = {};
+  try {
+    loc = JSON.parse(b.description_locales || "{}");
+  } catch {
+    /* карта не распарсилась — остаёмся на скаляре */
+  }
+  return loc[lang.value] || b.description || "";
+}
+
 function fieldClass(name: string): string {
   return invalidField.value === name ? "invalid" : "";
 }
@@ -183,6 +206,10 @@ async function add() {
         author: form.value.author,
         year: form.value.year ? Number(form.value.year) : null,
         cover: form.value.cover || null,
+        description: {
+          ru: form.value.descriptionRu.trim(),
+          en: form.value.descriptionEn.trim(),
+        },
       }),
     });
     if (res.redirected || res.status === 302) {
@@ -201,7 +228,7 @@ async function add() {
       }
       return;
     }
-    form.value = { title: "", author: "", year: "", cover: "" };
+    form.value = { title: "", author: "", year: "", cover: "", descriptionRu: "", descriptionEn: "" };
     page.value = 1;
     await load();
   } catch {
@@ -253,6 +280,10 @@ onMounted(() => {
       </div>
       <div>
         <span class="who">{{ memberName }} · {{ memberRole }}</span>
+        <span class="lang">
+          <button type="button" :class="{ on: lang === 'ru' }" @click="setLang('ru')">RU</button>
+          <button type="button" :class="{ on: lang === 'en' }" @click="setLang('en')">EN</button>
+        </span>
         <a class="logout" href="/logout">Выйти</a>
       </div>
     </header>
@@ -265,6 +296,18 @@ onMounted(() => {
         <input v-model="form.title" :class="fieldClass('title')" placeholder="Название" />
         <input v-model="form.author" :class="fieldClass('author')" placeholder="Автор" />
         <input v-model="form.year" :class="fieldClass('year')" placeholder="Год" inputmode="numeric" />
+        <input
+          v-model="form.descriptionRu"
+          class="desc"
+          :class="fieldClass('description')"
+          placeholder="Описание (RU)"
+        />
+        <input
+          v-model="form.descriptionEn"
+          class="desc"
+          :class="fieldClass('description')"
+          placeholder="Description (EN)"
+        />
         <select v-model="form.cover" class="sel cover-sel" :class="fieldClass('cover')">
           <option value="">Без обложки</option>
           <option v-for="m in covers" :key="m.id" :value="m.id">{{ coverLabel(m) }}</option>
@@ -321,7 +364,10 @@ onMounted(() => {
               <img v-if="b.cover" class="cover-thumb" :src="b.cover.url" :alt="`Обложка: ${b.title}`" />
               <span v-else class="cover-none" :title="'Обложка не назначена'"></span>
             </td>
-            <td class="title">{{ b.title }}</td>
+            <td class="title">
+              {{ b.title }}
+              <span v-if="descOf(b)" class="desc">{{ descOf(b) }}</span>
+            </td>
             <td>{{ b.author }}</td>
             <td class="num">{{ b.year ?? "—" }}</td>
             <td>
@@ -380,6 +426,7 @@ h2 { margin: 0; font-size: 14px; color: var(--muted); font-weight: 600; }
               border: 1px solid var(--border-strong); border-radius: 8px; }
 .form input { flex: 1 1 170px; min-width: 0; }
 .form input[placeholder="Год"] { flex: 0 0 90px; }
+.form input.desc { order: 3; flex: 1 1 45%; }
 .form .cover-sel { order: 5; flex: 1 1 100%; }
 .form button { order: 4; }
 .form input.invalid, .form select.invalid { border-color: var(--danger); background: var(--invalid); }
@@ -402,6 +449,10 @@ h2 { margin: 0; font-size: 14px; color: var(--muted); font-weight: 600; }
 .books tr:last-child td { border-bottom: 0; }
 .num { text-align: right; }
 .title { font-weight: 600; }
+.title .desc { display: block; font-weight: 400; font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+.lang { display: inline-flex; margin-right: 14px; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; }
+.lang button { padding: 4px 10px; font-size: 12px; font-weight: 600; color: var(--muted); background: transparent; border: 0; cursor: pointer; }
+.lang button.on { color: #fff; background: var(--primary); }
 .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
 .pill.stock { background: var(--pill-stock-bg); color: var(--pill-stock-fg); }
 .pill.loan { background: var(--pill-loan-bg); color: var(--pill-loan-fg); }
