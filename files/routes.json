@@ -240,5 +240,39 @@
         ]
       }
     ]
+  },
+  {
+    "path": "/api/printshop/orders",
+    "methods": [
+      "POST"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "flows": [
+      {
+        "handle": "printshop_orders",
+        "methods": [
+          "POST"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/api/printshop/webhook",
+    "methods": [
+      "POST"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "flows": [
+      {
+        "handle": "printshop_webhook",
+        "methods": [
+          "POST"
+        ]
+      }
+    ]
   }
 ]

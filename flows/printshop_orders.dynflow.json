@@ -1,0 +1,68 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-09-09T00:00:00.000Z",
+  "handle": {
+    "slug": "printshop_orders",
+    "name": "Printshop orders",
+    "enabled_cors": false,
+    "allowed_origins": []
+  },
+  "routes": [
+    {
+      "path": "/api/printshop/orders",
+      "methods": ["POST"],
+      "cache": { "defaultTtl": 0 },
+      "flows": [
+        { "handle": "printshop_orders", "methods": ["POST"] }
+      ]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      { "id": "n_start", "type": "entry", "data": {} },
+      {
+        "id": "c_key",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              { "field": "headers.X-Printshop-Key", "operator": "eq", "value": "secret://printshop_key" }
+            ]
+          }
+        }
+      },
+      {
+        "id": "a_accept",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 200,
+            "body_template": "{\"accepted\": true, \"order_id\": \"P-{{ \"\" | uuid | truncate: 8, \"\" }}\", \"title\": {{ json.title | json }}}"
+          }
+        }
+      },
+      {
+        "id": "a_reject",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 403,
+            "body_template": "{\"error\": \"BAD_KEY\"}"
+          }
+        }
+      }
+    ],
+    "edges": [
+      { "from": "n_start", "to": "c_key", "branch": "" },
+      { "from": "c_key", "to": "a_accept", "branch": "then" },
+      { "from": "c_key", "to": "a_reject", "branch": "else" }
+    ]
+  }
+}

@@ -11,6 +11,8 @@ interface Book {
   // Поле `_locales` приезжает строкой: '{"ru":"…","en":"…"}'.
   description_locales?: string | null;
   cover?: { id: string; url: string } | null;
+  // Состояние заказа в типографии: пусто — заказа нет, ordered/ready — едет.
+  print?: string | null;
 }
 
 interface MediaItem {
@@ -37,23 +39,113 @@ const boot =
   (window as unknown as { __BOOT__?: { member?: MemberSession | null; email?: string | null } })
     .__BOOT__ ?? {};
 
-const roleLabels: Record<string, string> = {
-  reader: "Читатель",
-  librarian: "Библиотекарь",
-};
-
-const memberName = computed(() => boot.member?.name || boot.email || "сотрудник");
-const memberRole = computed(() => roleLabels[boot.member?.role ?? ""] ?? "Читатель");
-// Права видны из сессии: кнопку удаления рисуем только библиотекарю.
-const isLibrarian = computed(() => boot.member?.role === "librarian");
-
-// Язык контента: хранится в localStorage, по умолчанию русский.
+// Язык контента и интерфейса: хранится в localStorage, по умолчанию русский.
 type Lang = "ru" | "en";
 const lang = ref<Lang>(localStorage.getItem("biblio-lang") === "en" ? "en" : "ru");
 function setLang(l: Lang) {
   lang.value = l;
   localStorage.setItem("biblio-lang", l);
 }
+
+// Словарь интерфейса: тоггл в шапке переключает и подписи, и данные.
+const dict = {
+  ru: {
+    kicker: "Библиотека",
+    h1: "Каталог книг",
+    staff: "сотрудник",
+    roles: { reader: "Читатель", librarian: "Библиотекарь" } as Record<string, string>,
+    logout: "Выйти",
+    newBook: "Новая книга",
+    phTitle: "Название",
+    phAuthor: "Автор",
+    phYear: "Год",
+    noCover: "Без обложки",
+    add: "Добавить",
+    byUrlHint: "Нет файла в библиотеке?",
+    byUrlName: "Имя в библиотеке",
+    byUrlAdd: "В библиотеку",
+    booksTotal: (n: number) => `Книг: ${n}`,
+    search: "Название или автор",
+    allStatuses: "Все статусы",
+    inStock: "В наличии",
+    onLoan: "На руках",
+    byYear: "По году",
+    byTitle: "По названию",
+    byAuthor: "По автору",
+    loading: "Загрузка…",
+    empty: "Ничего не найдено — смягчите фильтры.",
+    thTitle: "Название",
+    thAuthor: "Автор",
+    thYear: "Год",
+    thStatus: "Статус",
+    del: "Удалить",
+    prev: "← Назад",
+    next: "Вперёд →",
+    pageOf: (p: number, total: number) => `Страница ${p} из ${total}`,
+    status: (s: string) => (s === "on_loan" ? "На руках" : "В наличии"),
+    print: (p: string) => (p === "ready" ? "Готова к выдаче" : "В типографии"),
+    coverAlt: (title: string) => `Обложка: ${title}`,
+    noCoverTitle: "Обложка не назначена",
+    printAccepted: (id: string) => `Типография приняла заказ ${id}`,
+    printSilent: "Книга добавлена, но типография не ответила — заказ не отправлен.",
+    loadFailed: "Не удалось загрузить каталог.",
+    addFailed: "Не удалось добавить книгу.",
+    checkFields: "Проверьте заполнение полей.",
+    delFailed: "Не удалось удалить книгу.",
+    coverFailed: "Не удалось добавить обложку.",
+  },
+  en: {
+    kicker: "Library",
+    h1: "Book catalog",
+    staff: "staff member",
+    roles: { reader: "Reader", librarian: "Librarian" } as Record<string, string>,
+    logout: "Sign out",
+    newBook: "New book",
+    phTitle: "Title",
+    phAuthor: "Author",
+    phYear: "Year",
+    noCover: "No cover",
+    add: "Add",
+    byUrlHint: "No file in the library?",
+    byUrlName: "Name in the library",
+    byUrlAdd: "Upload",
+    booksTotal: (n: number) => `Books: ${n}`,
+    search: "Title or author",
+    allStatuses: "All statuses",
+    inStock: "In stock",
+    onLoan: "On loan",
+    byYear: "By year",
+    byTitle: "By title",
+    byAuthor: "By author",
+    loading: "Loading…",
+    empty: "Nothing found — try broader filters.",
+    thTitle: "Title",
+    thAuthor: "Author",
+    thYear: "Year",
+    thStatus: "Status",
+    del: "Delete",
+    prev: "← Prev",
+    next: "Next →",
+    pageOf: (p: number, total: number) => `Page ${p} of ${total}`,
+    status: (s: string) => (s === "on_loan" ? "On loan" : "In stock"),
+    print: (p: string) => (p === "ready" ? "Ready for pickup" : "At the print shop"),
+    coverAlt: (title: string) => `Cover: ${title}`,
+    noCoverTitle: "No cover assigned",
+    printAccepted: (id: string) => `The print shop accepted order ${id}`,
+    printSilent: "The book was added, but the print shop did not respond — no order sent.",
+    loadFailed: "Failed to load the catalog.",
+    addFailed: "Failed to add the book.",
+    checkFields: "Check the fields.",
+    delFailed: "Failed to remove the book.",
+    coverFailed: "Failed to add the cover.",
+  },
+};
+const t = computed(() => dict[lang.value]);
+
+const memberName = computed(() => boot.member?.name || boot.email || t.value.staff);
+const memberRole = computed(() => t.value.roles[boot.member?.role ?? ""] ?? t.value.roles.reader);
+// Права видны из сессии: кнопку удаления рисуем только библиотекарю.
+const isLibrarian = computed(() => boot.member?.role === "librarian");
 
 const books = ref<Book[]>([]);
 const total = ref(0);
@@ -65,6 +157,8 @@ const adding = ref(false);
 const form = ref({ title: "", author: "", year: "", cover: "", descriptionRu: "", descriptionEn: "" });
 const serverMessage = ref("");
 const invalidField = ref("");
+// Ответ внешнего сервиса на добавление книги: номер заказа типографии.
+const printNotice = ref("");
 
 // Медиатека проекта: то же хранилище, что и «Медиа» в админке платформы.
 const covers = ref<MediaItem[]>([]);
@@ -106,14 +200,14 @@ async function addByUrl() {
     }
     const data = await res.json().catch(() => null);
     if (!res.ok) {
-      serverMessage.value = data?.message ?? "Не удалось добавить обложку.";
+      serverMessage.value = data?.message ?? t.value.coverFailed;
       return;
     }
     byUrl.value = { url: "", name: "" };
     await loadCovers();
     if (data?.media?.id) form.value.cover = data.media.id;
   } catch {
-    serverMessage.value = "Не удалось добавить обложку.";
+    serverMessage.value = t.value.coverFailed;
   } finally {
     addingUrl.value = false;
   }
@@ -151,7 +245,7 @@ async function load() {
       return load();
     }
   } catch {
-    error.value = "Не удалось загрузить каталог.";
+    error.value = t.value.loadFailed;
   } finally {
     loading.value = false;
   }
@@ -196,6 +290,7 @@ function fieldClass(name: string): string {
 async function add() {
   adding.value = true;
   serverMessage.value = "";
+  printNotice.value = "";
   invalidField.value = "";
   try {
     const res = await fetch("/api/books/add", {
@@ -222,17 +317,25 @@ async function add() {
       const data = await res.json().catch(() => null);
       if (res.status === 400 && data?.field) {
         invalidField.value = data.field;
-        serverMessage.value = data.message ?? "Проверьте заполнение полей.";
+        serverMessage.value = data.message ?? t.value.checkFields;
       } else {
-        serverMessage.value = "Не удалось добавить книгу.";
+        serverMessage.value = t.value.addFailed;
       }
       return;
     }
+    const data = await res.json().catch(() => null);
     form.value = { title: "", author: "", year: "", cover: "", descriptionRu: "", descriptionEn: "" };
+    // Сценарий после создания книги вызвал внешний сервис: его ответ едет
+    // рядом с книгой. Нет ответа — типография не приняла заказ, говорим честно.
+    if (data?.printshop?.order_id) {
+      printNotice.value = t.value.printAccepted(data.printshop.order_id);
+    } else if (data?.printshop === null) {
+      printNotice.value = t.value.printSilent;
+    }
     page.value = 1;
     await load();
   } catch {
-    serverMessage.value = "Не удалось добавить книгу.";
+    serverMessage.value = t.value.addFailed;
   } finally {
     adding.value = false;
   }
@@ -252,17 +355,13 @@ async function remove(id: string) {
     }
     if (!res.ok) {
       const data = await res.json().catch(() => null);
-      serverMessage.value = data?.message ?? "Не удалось удалить книгу.";
+      serverMessage.value = data?.message ?? t.value.delFailed;
       return;
     }
     await load();
   } catch {
-    serverMessage.value = "Не удалось удалить книгу.";
+    serverMessage.value = t.value.delFailed;
   }
-}
-
-function statusLabel(status: string): string {
-  return status === "on_loan" ? "На руках" : "В наличии";
 }
 
 onMounted(() => {
@@ -275,8 +374,8 @@ onMounted(() => {
   <div class="wrap">
     <header class="top">
       <div>
-        <div class="kicker">Библиотека</div>
-        <h1>Каталог книг</h1>
+        <div class="kicker">{{ t.kicker }}</div>
+        <h1>{{ t.h1 }}</h1>
       </div>
       <div>
         <span class="who">{{ memberName }} · {{ memberRole }}</span>
@@ -284,18 +383,19 @@ onMounted(() => {
           <button type="button" :class="{ on: lang === 'ru' }" @click="setLang('ru')">RU</button>
           <button type="button" :class="{ on: lang === 'en' }" @click="setLang('en')">EN</button>
         </span>
-        <a class="logout" href="/logout">Выйти</a>
+        <a class="logout" href="/logout">{{ t.logout }}</a>
       </div>
     </header>
 
     <p v-if="serverMessage" class="error">{{ serverMessage }}</p>
+    <p v-if="printNotice" class="notice">{{ printNotice }}</p>
 
     <section class="panel">
-      <h2>Новая книга</h2>
+      <h2>{{ t.newBook }}</h2>
       <form class="form" @submit.prevent="add">
-        <input v-model="form.title" :class="fieldClass('title')" placeholder="Название" />
-        <input v-model="form.author" :class="fieldClass('author')" placeholder="Автор" />
-        <input v-model="form.year" :class="fieldClass('year')" placeholder="Год" inputmode="numeric" />
+        <input v-model="form.title" :class="fieldClass('title')" :placeholder="t.phTitle" />
+        <input v-model="form.author" :class="fieldClass('author')" :placeholder="t.phAuthor" />
+        <input v-model="form.year" :class="fieldClass('year')" :placeholder="t.phYear" inputmode="numeric" />
         <input
           v-model="form.descriptionRu"
           class="desc"
@@ -309,60 +409,60 @@ onMounted(() => {
           placeholder="Description (EN)"
         />
         <select v-model="form.cover" class="sel cover-sel" :class="fieldClass('cover')">
-          <option value="">Без обложки</option>
+          <option value="">{{ t.noCover }}</option>
           <option v-for="m in covers" :key="m.id" :value="m.id">{{ coverLabel(m) }}</option>
         </select>
-        <button type="submit" :disabled="adding">Добавить</button>
+        <button type="submit" :disabled="adding">{{ t.add }}</button>
       </form>
       <form class="by-url" @submit.prevent="addByUrl">
-        <span class="muted">Нет файла в библиотеке?</span>
-        <input v-model="byUrl.url" placeholder="https://… ссылка на картинку" />
-        <input v-model="byUrl.name" placeholder="Имя в библиотеке" />
-        <button type="submit" :disabled="addingUrl">В библиотеку</button>
+        <span class="muted">{{ t.byUrlHint }}</span>
+        <input v-model="byUrl.url" placeholder="https://…" />
+        <input v-model="byUrl.name" :placeholder="t.byUrlName" />
+        <button type="submit" :disabled="addingUrl">{{ t.byUrlAdd }}</button>
       </form>
     </section>
 
     <section class="panel">
       <div class="bar">
-        <h2>Книг: {{ total }}</h2>
+        <h2>{{ t.booksTotal(total) }}</h2>
         <div class="filters">
           <input
             v-model="query.q"
             class="search"
             type="search"
-            placeholder="Название или автор"
+            :placeholder="t.search"
             @input="onSearch"
           />
           <select v-model="query.status" class="sel" @change="onFilter">
-            <option value="">Все статусы</option>
-            <option value="in_stock">В наличии</option>
-            <option value="on_loan">На руках</option>
+            <option value="">{{ t.allStatuses }}</option>
+            <option value="in_stock">{{ t.inStock }}</option>
+            <option value="on_loan">{{ t.onLoan }}</option>
           </select>
           <select v-model="query.sort" class="sel" @change="onFilter">
-            <option value="">По году</option>
-            <option value="title">По названию</option>
-            <option value="author">По автору</option>
+            <option value="">{{ t.byYear }}</option>
+            <option value="title">{{ t.byTitle }}</option>
+            <option value="author">{{ t.byAuthor }}</option>
           </select>
         </div>
       </div>
-      <p v-if="loading" class="muted">Загрузка…</p>
-      <p v-else-if="books.length === 0" class="muted">Ничего не найдено — смягчите фильтры.</p>
+      <p v-if="loading" class="muted">{{ t.loading }}</p>
+      <p v-else-if="books.length === 0" class="muted">{{ t.empty }}</p>
       <table v-else class="books">
         <thead>
           <tr>
             <th></th>
-            <th>Название</th>
-            <th>Автор</th>
-            <th class="num">Год</th>
-            <th>Статус</th>
+            <th>{{ t.thTitle }}</th>
+            <th>{{ t.thAuthor }}</th>
+            <th class="num">{{ t.thYear }}</th>
+            <th>{{ t.thStatus }}</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="b in books" :key="b.id">
             <td class="cover-cell">
-              <img v-if="b.cover" class="cover-thumb" :src="b.cover.url" :alt="`Обложка: ${b.title}`" />
-              <span v-else class="cover-none" :title="'Обложка не назначена'"></span>
+              <img v-if="b.cover" class="cover-thumb" :src="b.cover.url" :alt="t.coverAlt(b.title)" />
+              <span v-else class="cover-none" :title="t.noCoverTitle"></span>
             </td>
             <td class="title">
               {{ b.title }}
@@ -372,19 +472,24 @@ onMounted(() => {
             <td class="num">{{ b.year ?? "—" }}</td>
             <td>
               <span class="pill" :class="b.status === 'on_loan' ? 'loan' : 'stock'">
-                {{ statusLabel(b.status) }}
+                {{ t.status(b.status) }}
+              </span>
+              <!-- Печатный заказ — аннотация под статусом, а не вторая пилюля:
+                   это состояние внешнего процесса, не книги. -->
+              <span v-if="b.print" class="print-state" :class="{ ready: b.print === 'ready' }">
+                {{ t.print(b.print) }}
               </span>
             </td>
             <td class="num">
-              <button v-if="isLibrarian" class="del" @click="remove(b.id)">Удалить</button>
+              <button v-if="isLibrarian" class="del" @click="remove(b.id)">{{ t.del }}</button>
             </td>
           </tr>
         </tbody>
       </table>
       <div v-if="pages > 1" class="pager">
-        <button class="page" :disabled="page <= 1" @click="goTo(page - 1)">← Назад</button>
-        <span class="muted">Страница {{ page }} из {{ pages }}</span>
-        <button class="page" :disabled="page >= pages" @click="goTo(page + 1)">Вперёд →</button>
+        <button class="page" :disabled="page <= 1" @click="goTo(page - 1)">{{ t.prev }}</button>
+        <span class="muted">{{ t.pageOf(page, pages) }}</span>
+        <button class="page" :disabled="page >= pages" @click="goTo(page + 1)">{{ t.next }}</button>
       </div>
     </section>
   </div>
@@ -425,7 +530,7 @@ h2 { margin: 0; font-size: 14px; color: var(--muted); font-weight: 600; }
 .form input, .form select { padding: 9px 10px; font-size: 14px; background: var(--panel); color: var(--text);
               border: 1px solid var(--border-strong); border-radius: 8px; }
 .form input { flex: 1 1 170px; min-width: 0; }
-.form input[placeholder="Год"] { flex: 0 0 90px; }
+.form input[placeholder="Год"], .form input[placeholder="Year"] { flex: 0 0 90px; }
 .form input.desc { order: 3; flex: 1 1 45%; }
 .form .cover-sel { order: 5; flex: 1 1 100%; }
 .form button { order: 4; }
@@ -453,9 +558,14 @@ h2 { margin: 0; font-size: 14px; color: var(--muted); font-weight: 600; }
 .lang { display: inline-flex; margin-right: 14px; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; }
 .lang button { padding: 4px 10px; font-size: 12px; font-weight: 600; color: var(--muted); background: transparent; border: 0; cursor: pointer; }
 .lang button.on { color: #fff; background: var(--primary); }
-.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
 .pill.stock { background: var(--pill-stock-bg); color: var(--pill-stock-fg); }
 .pill.loan { background: var(--pill-loan-bg); color: var(--pill-loan-fg); }
+/* Печатный заказ — текст-аннотация без коробки: состояние внешнего
+   процесса читается как пометка, а не как второй статус. */
+.print-state { display: block; margin-top: 4px; font-size: 11px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.print-state.ready { color: var(--pill-stock-fg); }
+.notice { color: var(--primary); font-size: 14px; margin: -8px 0 12px; }
 .pager { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
 .page { padding: 7px 12px; font-size: 13px; font-weight: 600; color: var(--primary); background: transparent;
         border: 1px solid var(--border-strong); border-radius: 8px; cursor: pointer; }

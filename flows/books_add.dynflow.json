@@ -1,7 +1,7 @@
 {
   "format": "dynapi-flow",
   "version": 1,
-  "exportedAt": "2026-09-08T00:00:00.000Z",
+  "exportedAt": "2026-09-09T00:00:00.000Z",
   "handle": {
     "slug": "books_add",
     "name": "Books add",
@@ -150,7 +150,7 @@
           "action_type": "graphql",
           "on_error": "stop",
           "config": {
-            "query": "mutation($title: String!, $author: String!, $year: Int, $status: String, $cover: ID, $description: JSON) {\n  createBook(input: {title: $title, author: $author, year: $year, status: $status, cover: $cover, description: $description}) {\n    id title author year status\n    description description_locales\n    cover { id url }\n  }\n}",
+            "query": "mutation($title: String!, $author: String!, $year: Int, $status: String, $cover: ID, $description: JSON) {\n  createBook(input: {title: $title, author: $author, year: $year, status: $status, cover: $cover, description: $description}) {\n    id title author year status print\n    description description_locales\n    cover { id url }\n  }\n}",
             "variables": {
               "title": "{{json.title | strip}}",
               "author": "{{json.author | strip}}",
@@ -168,6 +168,23 @@
         }
       },
       {
+        "id": "a_printshop",
+        "type": "action",
+        "data": {
+          "action_type": "http_post",
+          "on_error": "continue",
+          "config": {
+            "url": "https://biblio.dynapi.ru/api/printshop/orders",
+            "headers": {
+              "X-Printshop-Key": "secret://printshop_key"
+            },
+            "body_template": "{\"book_id\": \"{{results.created.createBook.id}}\", \"title\": {{results.created.createBook.title | json}}}",
+            "result_key": "printshop",
+            "timeout_sec": 10
+          }
+        }
+      },
+      {
         "id": "a_out",
         "type": "action",
         "data": {
@@ -175,7 +192,7 @@
           "on_error": "continue",
           "config": {
             "status": 201,
-            "body_template": "{\"book\": {{ results.created.createBook | json }}}"
+            "body_template": "{\"book\": {{ results.created.createBook | json }}, \"printshop\": {{ results.printshop | json }}}"
           }
         }
       },
@@ -296,6 +313,11 @@
       },
       {
         "from": "a_create",
+        "to": "a_printshop",
+        "branch": ""
+      },
+      {
+        "from": "a_printshop",
         "to": "a_out",
         "branch": ""
       }

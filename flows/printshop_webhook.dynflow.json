@@ -1,0 +1,119 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-09-09T00:00:00.000Z",
+  "handle": {
+    "slug": "printshop_webhook",
+    "name": "Printshop webhook",
+    "enabled_cors": false,
+    "allowed_origins": []
+  },
+  "routes": [
+    {
+      "path": "/api/printshop/webhook",
+      "methods": ["POST"],
+      "cache": { "defaultTtl": 0 },
+      "flows": [
+        { "handle": "printshop_webhook", "methods": ["POST"] }
+      ]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      { "id": "n_start", "type": "entry", "data": {} },
+      {
+        "id": "c_sig",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              {
+                "field": "headers.X-Printshop-Signature",
+                "operator": "digest_matches",
+                "value": "hmac-sha256|secret://printshop_signing|{{raw_body}}"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "c_id",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              {
+                "field": "json.book_id",
+                "operator": "matches",
+                "value": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "a_update",
+        "type": "action",
+        "data": {
+          "action_type": "graphql",
+          "on_error": "stop",
+          "config": {
+            "query": "mutation($id: ID!, $print: String) {\n  updateBook(id: $id, input: {print: $print}) {\n    id title print\n  }\n}",
+            "variables": {
+              "id": "{{json.book_id}}",
+              "print": "ready"
+            },
+            "result_key": "updated"
+          }
+        }
+      },
+      {
+        "id": "a_ok",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 200,
+            "body_template": "{\"ok\": true, \"book\": {{ results.updated.updateBook | json }}}"
+          }
+        }
+      },
+      {
+        "id": "a_deny",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 403,
+            "body_template": "{\"error\": \"BAD_SIGNATURE\"}"
+          }
+        }
+      },
+      {
+        "id": "a_bad_id",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 400,
+            "body_template": "{\"error\": \"BAD_REQUEST\", \"message\": \"book_id обязателен\"}"
+          }
+        }
+      }
+    ],
+    "edges": [
+      { "from": "n_start", "to": "c_sig", "branch": "" },
+      { "from": "c_sig", "to": "c_id", "branch": "then" },
+      { "from": "c_sig", "to": "a_deny", "branch": "else" },
+      { "from": "c_id", "to": "a_update", "branch": "then" },
+      { "from": "c_id", "to": "a_bad_id", "branch": "else" },
+      { "from": "a_update", "to": "a_ok", "branch": "" }
+    ]
+  }
+}
