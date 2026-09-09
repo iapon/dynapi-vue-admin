@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ru" data-theme="dynamica-light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Biblio — локальный запуск</title>
+<link rel="stylesheet" href="/admin.css">
+</head>
+<body>
+<div id="app"></div>
+<script>
+  // Локальный запуск вне сайта: подкладываем сессию, которую на живом
+  // проекте кладёт в страницу шаблон admin.liquid.
+  window.__BOOT__ = { member: { id: "m_1", name: "Марина", role: "librarian" }, email: "reader@biblio.test" };
+</script>
+<script type="module" src="/admin.js"></script>
+</body>
+</html>
