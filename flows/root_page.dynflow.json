@@ -1,0 +1,42 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-09-10T00:00:00.000Z",
+  "handle": {
+    "slug": "root_page",
+    "name": "Root page",
+    "enabled_cors": false,
+    "allowed_origins": []
+  },
+  "routes": [
+    {
+      "path": "/",
+      "methods": ["GET"],
+      "cache": { "defaultTtl": 0 },
+      "flows": [
+        { "handle": "root_page", "methods": ["GET"] }
+      ]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      { "id": "n_start", "type": "entry", "data": {} },
+      {
+        "id": "a_redirect",
+        "type": "action",
+        "data": {
+          "action_type": "redirect",
+          "on_error": "continue",
+          "config": {
+            "location": "/login",
+            "status": 302
+          }
+        }
+      }
+    ],
+    "edges": [
+      { "from": "n_start", "to": "a_redirect", "branch": "" }
+    ]
+  }
+}
