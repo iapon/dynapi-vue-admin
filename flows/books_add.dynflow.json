@@ -150,7 +150,7 @@
           "action_type": "graphql",
           "on_error": "stop",
           "config": {
-            "query": "mutation($title: String!, $author: String!, $year: Int, $status: String, $cover: ID, $description: JSON) {\n  createBook(input: {title: $title, author: $author, year: $year, status: $status, cover: $cover, description: $description}) {\n    id title author year status print\n    description description_locales\n    cover { id url }\n  }\n}",
+            "query": "mutation($title: String!, $author: String!, $year: Int, $status: String, $cover: ID, $description: JSON, $print: String) {\n  createBook(input: {title: $title, author: $author, year: $year, status: $status, cover: $cover, description: $description, print: $print}) {\n    id title author year status print\n    description description_locales\n    cover { id url }\n  }\n}",
             "variables": {
               "title": "{{json.title | strip}}",
               "author": "{{json.author | strip}}",
@@ -160,7 +160,8 @@
               "description": {
                 "ru": "{{json.description.ru}}",
                 "en": "{{json.description.en}}"
-              }
+              },
+              "print": "ordered"
             },
             "result_key": "created",
             "secret_vars": []
