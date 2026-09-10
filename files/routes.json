@@ -274,5 +274,81 @@
         ]
       }
     ]
+  },
+  {
+    "path": "/api/members",
+    "methods": [
+      "GET"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "membersOnly": true,
+    "loginPath": "/login",
+    "flows": [
+      {
+        "handle": "members_list",
+        "methods": [
+          "GET"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/api/loans",
+    "methods": [
+      "GET"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "membersOnly": true,
+    "loginPath": "/login",
+    "flows": [
+      {
+        "handle": "loans_list",
+        "methods": [
+          "GET"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/api/loans/issue",
+    "methods": [
+      "POST"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "membersOnly": true,
+    "loginPath": "/login",
+    "flows": [
+      {
+        "handle": "loans_issue",
+        "methods": [
+          "POST"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/api/loans/return",
+    "methods": [
+      "POST"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "membersOnly": true,
+    "loginPath": "/login",
+    "flows": [
+      {
+        "handle": "loans_return",
+        "methods": [
+          "POST"
+        ]
+      }
+    ]
   }
 ]

@@ -1,0 +1,1 @@
+{"name": "loans_list", "query": "query {\n  loans(where: {status: {eq: \"active\"}}, orderBy: [{field: DUE_DATE, direction: ASC}]) {\n    id due_date status\n    book { title }\n    member { email }\n  }\n}"}

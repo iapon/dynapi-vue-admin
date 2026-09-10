@@ -1,0 +1,164 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-09-10T00:00:00.000Z",
+  "handle": {
+    "slug": "loans_issue",
+    "name": "Loans issue",
+    "enabled_cors": false,
+    "allowed_origins": []
+  },
+  "routes": [
+    {
+      "path": "/api/loans/issue",
+      "methods": ["POST"],
+      "cache": { "defaultTtl": 0 },
+      "membersOnly": true,
+      "loginPath": "/login",
+      "flows": [{ "handle": "loans_issue", "methods": ["POST"] }]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      { "id": "n_start", "type": "entry", "data": {} },
+      {
+        "id": "c_book",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              { "field": "json.book_id", "operator": "matches", "value": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" }
+            ]
+          }
+        }
+      },
+      {
+        "id": "c_member",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              { "field": "json.member_id", "operator": "matches", "value": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" }
+            ]
+          }
+        }
+      },
+      {
+        "id": "c_due",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              { "field": "json.due_date", "operator": "matches", "value": "^\\d{4}-\\d{2}-\\d{2}$" }
+            ]
+          }
+        }
+      },
+      {
+        "id": "a_create",
+        "type": "action",
+        "data": {
+          "action_type": "graphql",
+          "on_error": "continue",
+          "config": {
+            "query": "mutation($book: ID!, $member: ID!, $due: String!) {\n  createLoan(input: {book: $book, member: $member, due_date: $due, status: \"active\"}) {\n    id due_date status\n    book { title }\n    member { email }\n  }\n}",
+            "variables": {
+              "book": "{{json.book_id}}",
+              "member": "{{json.member_id}}",
+              "due": "{{json.due_date}}"
+            },
+            "result_key": "created"
+          }
+        }
+      },
+      {
+        "id": "c_ok",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              { "field": "results.created.createLoan.id", "operator": "matches", "value": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" }
+            ]
+          }
+        }
+      },
+      {
+        "id": "a_out",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 201,
+            "body_template": "{\"loan\": {{ results.created.createLoan | json }}}"
+          }
+        }
+      },
+      {
+        "id": "a_ref",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 400,
+            "body_template": "{\"error\": \"REF_NOT_FOUND\"}"
+          }
+        }
+      },
+      {
+        "id": "a_e_book",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 400,
+            "body_template": "{\"error\": \"VALIDATION\", \"field\": \"book_id\"}"
+          }
+        }
+      },
+      {
+        "id": "a_e_member",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 400,
+            "body_template": "{\"error\": \"VALIDATION\", \"field\": \"member_id\"}"
+          }
+        }
+      },
+      {
+        "id": "a_e_due",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 400,
+            "body_template": "{\"error\": \"VALIDATION\", \"field\": \"due_date\"}"
+          }
+        }
+      }
+    ],
+    "edges": [
+      { "from": "n_start", "to": "c_book", "branch": "" },
+      { "from": "c_book", "to": "c_member", "branch": "then" },
+      { "from": "c_book", "to": "a_e_book", "branch": "else" },
+      { "from": "c_member", "to": "c_due", "branch": "then" },
+      { "from": "c_member", "to": "a_e_member", "branch": "else" },
+      { "from": "c_due", "to": "a_create", "branch": "then" },
+      { "from": "c_due", "to": "a_e_due", "branch": "else" },
+      { "from": "a_create", "to": "c_ok", "branch": "" },
+      { "from": "c_ok", "to": "a_out", "branch": "then" },
+      { "from": "c_ok", "to": "a_ref", "branch": "else" }
+    ]
+  }
+}

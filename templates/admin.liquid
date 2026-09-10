@@ -4,18 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Каталог — Библиотека</title>
-  <link rel="stylesheet" href="/static/admin.css?v={{ site.version }}">
+  <link rel="stylesheet" href="/static/admin.css?v=470">
 </head>
 <body>
   <div id="app"></div>
   <script>
-    // Boot payload: собран сервером до рендера шаблона.
-    // member — сессия из куки, email — результат graphql-узла сценария.
     window.__BOOT__ = {
       member: {{ member | json }},
       email: {{ results.me.members[0].email | json }}
     };
   </script>
-  <script type="module" src="/static/admin.js?v={{ site.version }}"></script>
+  <script type="module" src="/static/admin.js?v=470"></script>
 </body>
 </html>

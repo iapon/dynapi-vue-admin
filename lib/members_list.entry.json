@@ -1,0 +1,1 @@
+{"name": "members_list", "query": "query {\n  members(orderBy: [{field: NAME, direction: ASC}]) {\n    id name email\n  }\n}"}

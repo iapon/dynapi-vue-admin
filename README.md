@@ -36,6 +36,7 @@
 | `step-7-media` | + обложки: поле `cover` у книги, сценарии `/api/media` (список + добавление по ссылке), пикер в форме и тумбы в каталоге (статья №4 журнала) |
 | `step-8-locale` | + два языка: локаль проекта ru по умолчанию, локализованное `description` у книги, `books_list` с `description_locales`, `books_add` с картой `{ru,en}`, переключатель RU/EN в каталоге (статья №5 журнала) |
 | `step-9-external` | + внешние сервисы: секреты `printshop_key`/`printshop_signing`, исходящий `http_post` из `books_add` (заказ в типографию), входящий подписанный вебхук `/api/printshop/webhook` с гейтом `digest_matches`, пометка печати в каталоге (статья №6 журнала) |
+| `step-10-loans` | + выдачи книг: тип «Выдача», сценарии `/api/members`, `/api/loans`, `/api/loans/issue`, `/api/loans/return`, записи библиотеки запросов `members_list`/`loans_list`, панель «Выдачи» в каталоге. Собрано агентом по [INSTRUCTION-LOANS.md](INSTRUCTION-LOANS.md) (статья №7 журнала) |
 | `main` | + сиды данных `seed/`, сценарий страницы админки `flows/admin_page.dynflow.json`, этот README |
 
 Переключайтесь по мере прохождения:
@@ -49,6 +50,7 @@ git checkout step-6-api      # статья №3: фильтры, пагинац
 git checkout step-7-media    # статья №4: обложки и медиатека
 git checkout step-8-locale   # статья №5: два языка из одной записи
 git checkout step-9-external # статья №6: заказ в типографию и подписанный вебхук
+git checkout step-10-loans  # статья №7: выдачи книг — задача для агента
 git checkout main          # шаги 5–6 до конца
 ```
 
@@ -270,6 +272,32 @@ flowctl files push spa/dist --as static --publish
 ```
 
 Проверить вебхук руками можно тем же скриптом, что в статье: подпишите HMAC-SHA256 от точного тела запроса и отправьте POST на `/api/printshop/webhook` с заголовком `X-Printshop-Signature`. Подпись не сойдётся — сценарий ответит 403 и не тронет данные.
+
+## Шаг 10. Выдачи книг — задача для агента (статья №7)
+
+Финальный шаг собран не руками, а ИИ-агентом по одной инструкции —
+[INSTRUCTION-LOANS.md](INSTRUCTION-LOANS.md). Человек описывает результат
+(тип «Выдача», четыре эндпоинта, панель «Выдачи» в каталоге), агент делает
+остальное через flowctl: `validate` → `dryrun` → `apply` → `route save` →
+`files push`, а ошибки сверяет по журналу прогонов.
+
+```bash
+git checkout step-10-loans
+# в админке создайте тип loan: book → Книга, member → Читатель,
+# due_date (дата), status (список: active / returned)
+flowctl query save lib/members_list.entry.json --publish
+flowctl query save lib/loans_list.entry.json --publish
+flowctl apply flows/members_list.dynflow.json --publish
+flowctl apply flows/loans_list.dynflow.json --publish
+flowctl apply flows/loans_issue.dynflow.json --publish
+flowctl apply flows/loans_return.dynflow.json --publish
+flowctl route save files/routes.json --publish
+cd spa && npm run build && cd ..
+flowctl files push spa/dist --as static --publish
+```
+
+Готово — в каталоге появилась панель «Выдачи»: кнопка «Выдать» у книги
+раскрывает селект читателя и дату возврата, кнопка «Вернул» закрывает выдачу.
 
 ## Проверка
 

@@ -1,0 +1,59 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-09-10T00:00:00.000Z",
+  "handle": {
+    "slug": "members_list",
+    "name": "Members list",
+    "enabled_cors": false,
+    "allowed_origins": []
+  },
+  "queries": [
+    { "name": "members_list", "query": "query {\n  members(orderBy: [{field: NAME, direction: ASC}]) {\n    id name email\n  }\n}" }
+  ],
+  "routes": [
+    {
+      "path": "/api/members",
+      "methods": ["GET"],
+      "cache": { "defaultTtl": 0 },
+      "membersOnly": true,
+      "loginPath": "/login",
+      "flows": [{ "handle": "members_list", "methods": ["GET"] }]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      { "id": "n_start", "type": "entry", "data": {} },
+      {
+        "id": "a_m",
+        "type": "action",
+        "data": {
+          "action_type": "graphql",
+          "on_error": "stop",
+          "config": {
+            "query": "query {\n  members(orderBy: [{field: NAME, direction: ASC}]) {\n    id name email\n  }\n}",
+            "library_name": "members_list",
+            "result_key": "m"
+          }
+        }
+      },
+      {
+        "id": "a_out",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 200,
+            "body_template": "{\"members\": {{ results.m.members | json }}}"
+          }
+        }
+      }
+    ],
+    "edges": [
+      { "from": "n_start", "to": "a_m", "branch": "" },
+      { "from": "a_m", "to": "a_out", "branch": "" }
+    ]
+  }
+}

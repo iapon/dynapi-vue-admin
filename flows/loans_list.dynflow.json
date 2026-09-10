@@ -1,0 +1,59 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-09-10T00:00:00.000Z",
+  "handle": {
+    "slug": "loans_list",
+    "name": "Loans list",
+    "enabled_cors": false,
+    "allowed_origins": []
+  },
+  "queries": [
+    { "name": "loans_list", "query": "query {\n  loans(where: {status: {eq: \"active\"}}, orderBy: [{field: DUE_DATE, direction: ASC}]) {\n    id due_date status\n    book { title }\n    member { email }\n  }\n}" }
+  ],
+  "routes": [
+    {
+      "path": "/api/loans",
+      "methods": ["GET"],
+      "cache": { "defaultTtl": 0 },
+      "membersOnly": true,
+      "loginPath": "/login",
+      "flows": [{ "handle": "loans_list", "methods": ["GET"] }]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      { "id": "n_start", "type": "entry", "data": {} },
+      {
+        "id": "a_l",
+        "type": "action",
+        "data": {
+          "action_type": "graphql",
+          "on_error": "stop",
+          "config": {
+            "query": "query {\n  loans(where: {status: {eq: \"active\"}}, orderBy: [{field: DUE_DATE, direction: ASC}]) {\n    id due_date status\n    book { title }\n    member { email }\n  }\n}",
+            "library_name": "loans_list",
+            "result_key": "l"
+          }
+        }
+      },
+      {
+        "id": "a_out",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 200,
+            "body_template": "{\"loans\": {{ results.l.loans | json }}}"
+          }
+        }
+      }
+    ],
+    "edges": [
+      { "from": "n_start", "to": "a_l", "branch": "" },
+      { "from": "a_l", "to": "a_out", "branch": "" }
+    ]
+  }
+}

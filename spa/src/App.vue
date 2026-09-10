@@ -33,6 +33,22 @@ interface MemberSession {
   role?: string | null;
 }
 
+// Выдача: активная запись журнала — книга у читателя до даты.
+interface Loan {
+  id: string;
+  due_date: string;
+  status: string;
+  book?: { title: string } | null;
+  member?: { email: string } | null;
+}
+
+// Читатель для селекта выдачи: id + подпись.
+interface MemberLite {
+  id: string;
+  name?: string | null;
+  email: string;
+}
+
 // Данные, которые сервер вложил в страницу при заходе (шаблон admin.liquid):
 // member — сессия из куки, email — результат graphql-узла сценария.
 const boot =
@@ -93,6 +109,19 @@ const dict = {
     checkFields: "Проверьте заполнение полей.",
     delFailed: "Не удалось удалить книгу.",
     coverFailed: "Не удалось добавить обложку.",
+    loansTotal: (n: number) => `Выдачи: ${n}`,
+    loansEmpty: "Активных выдач нет.",
+    thReader: "Читатель",
+    thDue: "Вернуть до",
+    giveBack: "Вернул",
+    issue: "Выдать",
+    issueOk: "Готово",
+    issueCancel: "Отмена",
+    pickReader: "Читатель…",
+    issueFailed: "Не удалось оформить выдачу.",
+    loanRef: "Книга или читатель не найдены.",
+    returnFailed: "Не удалось принять возврат.",
+    loansLoadFailed: "Не удалось загрузить выдачи.",
   },
   en: {
     kicker: "Library",
@@ -138,6 +167,19 @@ const dict = {
     checkFields: "Check the fields.",
     delFailed: "Failed to remove the book.",
     coverFailed: "Failed to add the cover.",
+    loansTotal: (n: number) => `Loans: ${n}`,
+    loansEmpty: "No active loans.",
+    thReader: "Reader",
+    thDue: "Due",
+    giveBack: "Returned",
+    issue: "Issue",
+    issueOk: "Done",
+    issueCancel: "Cancel",
+    pickReader: "Reader…",
+    issueFailed: "Failed to issue the book.",
+    loanRef: "Book or reader not found.",
+    returnFailed: "Failed to record the return.",
+    loansLoadFailed: "Failed to load the loans.",
   },
 };
 const t = computed(() => dict[lang.value]);
@@ -164,6 +206,123 @@ const printNotice = ref("");
 const covers = ref<MediaItem[]>([]);
 const byUrl = ref({ url: "", name: "" });
 const addingUrl = ref(false);
+
+// Журнал выдач: активные записи и читатели для селекта. Выдача открывается
+// из строки каталога: ищем книгу глазами, читателя выбираем из списка.
+const loans = ref<Loan[]>([]);
+const members = ref<MemberLite[]>([]);
+const issuingFor = ref("");
+const loanForm = ref({ member_id: "", due_date: "" });
+const issuing = ref(false);
+const returning = ref("");
+
+async function loadLoans() {
+  try {
+    const res = await fetch("/api/loans", { headers: { Accept: "application/json" } });
+    if (res.redirected || res.status === 302) {
+      window.location.href = "/login";
+      return;
+    }
+    if (!res.ok) {
+      serverMessage.value = t.value.loansLoadFailed;
+      return;
+    }
+    const data = await res.json();
+    loans.value = data.loans ?? [];
+  } catch {
+    serverMessage.value = t.value.loansLoadFailed;
+  }
+}
+
+async function loadMembers() {
+  try {
+    const res = await fetch("/api/members", { headers: { Accept: "application/json" } });
+    if (res.redirected || res.status === 302) {
+      window.location.href = "/login";
+      return;
+    }
+    if (!res.ok) return;
+    const data = await res.json();
+    members.value = data.members ?? [];
+  } catch {
+    /* селект читателей останется пустым */
+  }
+}
+
+function openIssue(bookId: string) {
+  issuingFor.value = bookId;
+  loanForm.value = { member_id: "", due_date: "" };
+  serverMessage.value = "";
+  invalidField.value = "";
+}
+
+function memberLabel(m: MemberLite): string {
+  return m.name ? `${m.name} · ${m.email}` : m.email;
+}
+
+async function issue(bookId: string) {
+  issuing.value = true;
+  serverMessage.value = "";
+  invalidField.value = "";
+  try {
+    const res = await fetch("/api/loans/issue", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        book_id: bookId,
+        member_id: loanForm.value.member_id,
+        due_date: loanForm.value.due_date,
+      }),
+    });
+    if (res.redirected || res.status === 302) {
+      window.location.href = "/login";
+      return;
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      if (res.status === 400 && data?.field) {
+        invalidField.value = data.field;
+        serverMessage.value = data.message ?? t.value.checkFields;
+      } else if (data?.error === "REF_NOT_FOUND") {
+        serverMessage.value = t.value.loanRef;
+      } else {
+        serverMessage.value = t.value.issueFailed;
+      }
+      return;
+    }
+    issuingFor.value = "";
+    await loadLoans();
+  } catch {
+    serverMessage.value = t.value.issueFailed;
+  } finally {
+    issuing.value = false;
+  }
+}
+
+async function giveBack(loanId: string) {
+  returning.value = loanId;
+  serverMessage.value = "";
+  try {
+    const res = await fetch("/api/loans/return", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ loan_id: loanId }),
+    });
+    if (res.redirected || res.status === 302) {
+      window.location.href = "/login";
+      return;
+    }
+    if (!res.ok) {
+      serverMessage.value = t.value.returnFailed;
+      return;
+    }
+    await loadLoans();
+  } catch {
+    serverMessage.value = t.value.returnFailed;
+  } finally {
+    returning.value = "";
+  }
+}
 
 async function loadCovers() {
   try {
@@ -367,6 +526,8 @@ async function remove(id: string) {
 onMounted(() => {
   load();
   loadCovers();
+  loadLoans();
+  loadMembers();
 });
 </script>
 
@@ -459,31 +620,47 @@ onMounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="b in books" :key="b.id">
-            <td class="cover-cell">
-              <img v-if="b.cover" class="cover-thumb" :src="b.cover.url" :alt="t.coverAlt(b.title)" />
-              <span v-else class="cover-none" :title="t.noCoverTitle"></span>
-            </td>
-            <td class="title">
-              {{ b.title }}
-              <span v-if="descOf(b)" class="desc">{{ descOf(b) }}</span>
-            </td>
-            <td>{{ b.author }}</td>
-            <td class="num">{{ b.year ?? "—" }}</td>
-            <td>
-              <span class="pill" :class="b.status === 'on_loan' ? 'loan' : 'stock'">
-                {{ t.status(b.status) }}
-              </span>
-              <!-- Печатный заказ — аннотация под статусом, а не вторая пилюля:
-                   это состояние внешнего процесса, не книги. -->
-              <span v-if="b.print" class="print-state" :class="{ ready: b.print === 'ready' }">
-                {{ t.print(b.print) }}
-              </span>
-            </td>
-            <td class="num">
-              <button v-if="isLibrarian" class="del" @click="remove(b.id)">{{ t.del }}</button>
-            </td>
-          </tr>
+          <template v-for="b in books" :key="b.id">
+            <tr>
+              <td class="cover-cell">
+                <img v-if="b.cover" class="cover-thumb" :src="b.cover.url" :alt="t.coverAlt(b.title)" />
+                <span v-else class="cover-none" :title="t.noCoverTitle"></span>
+              </td>
+              <td class="title">
+                {{ b.title }}
+                <span v-if="descOf(b)" class="desc">{{ descOf(b) }}</span>
+              </td>
+              <td>{{ b.author }}</td>
+              <td class="num">{{ b.year ?? "—" }}</td>
+              <td>
+                <span class="pill" :class="b.status === 'on_loan' ? 'loan' : 'stock'">
+                  {{ t.status(b.status) }}
+                </span>
+                <!-- Печатный заказ — аннотация под статусом, а не вторая пилюля:
+                     это состояние внешнего процесса, не книги. -->
+                <span v-if="b.print" class="print-state" :class="{ ready: b.print === 'ready' }">
+                  {{ t.print(b.print) }}
+                </span>
+              </td>
+              <td class="num">
+                <button v-if="isLibrarian" class="issue-link" @click="openIssue(b.id)">{{ t.issue }}</button>
+                <button v-if="isLibrarian" class="del" @click="remove(b.id)">{{ t.del }}</button>
+              </td>
+            </tr>
+            <tr v-if="issuingFor === b.id" class="issue-row">
+              <td colspan="6">
+                <form class="issue-form" @submit.prevent="issue(b.id)">
+                  <select v-model="loanForm.member_id" class="sel" :class="fieldClass('member_id')">
+                    <option value="">{{ t.pickReader }}</option>
+                    <option v-for="m in members" :key="m.id" :value="m.id">{{ memberLabel(m) }}</option>
+                  </select>
+                  <input v-model="loanForm.due_date" type="date" :class="fieldClass('due_date')" />
+                  <button type="submit" :disabled="issuing">{{ t.issue }}</button>
+                  <button type="button" class="cancel" @click="issuingFor = ''">{{ t.issueCancel }}</button>
+                </form>
+              </td>
+            </tr>
+          </template>
         </tbody>
       </table>
       <div v-if="pages > 1" class="pager">
@@ -491,6 +668,35 @@ onMounted(() => {
         <span class="muted">{{ t.pageOf(page, pages) }}</span>
         <button class="page" :disabled="page >= pages" @click="goTo(page + 1)">{{ t.next }}</button>
       </div>
+    </section>
+
+    <section class="panel">
+      <div class="bar">
+        <h2>{{ t.loansTotal(loans.length) }}</h2>
+      </div>
+      <p v-if="loans.length === 0" class="muted">{{ t.loansEmpty }}</p>
+      <table v-else class="books">
+        <thead>
+          <tr>
+            <th>{{ t.thTitle }}</th>
+            <th>{{ t.thReader }}</th>
+            <th class="num">{{ t.thDue }}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="l in loans" :key="l.id">
+            <td class="title">{{ l.book?.title ?? "—" }}</td>
+            <td>{{ l.member?.email ?? "—" }}</td>
+            <td class="num">{{ l.due_date }}</td>
+            <td class="num">
+              <button v-if="isLibrarian" class="del" :disabled="returning === l.id" @click="giveBack(l.id)">
+                {{ t.giveBack }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </section>
   </div>
 </template>
@@ -543,6 +749,16 @@ h2 { margin: 0; font-size: 14px; color: var(--muted); font-weight: 600; }
                  border: 1px solid var(--border-strong); border-radius: 8px; cursor: pointer; }
 .form button, .del { padding: 9px 14px; font-size: 13px; font-weight: 600; color: #fff; background: var(--primary); border: 0; border-radius: 8px; cursor: pointer; }
 .del { background: transparent; color: var(--danger); padding: 4px 8px; }
+/* Выдача из строки каталога: тихая кнопка-ссылка и раскрытая строка. */
+.issue-link { padding: 4px 8px; font-size: 13px; font-weight: 600; color: var(--primary); background: transparent; border: 0; cursor: pointer; }
+.issue-row td { background: var(--row-line); border-bottom: 1px solid var(--row-line); }
+.issue-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.issue-form select, .issue-form input { padding: 8px 10px; font-size: 13px; background: var(--panel); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: 8px; }
+.issue-form select { flex: 1 1 220px; min-width: 0; }
+.issue-form button { padding: 8px 14px; font-size: 13px; font-weight: 600; color: #fff; background: var(--primary); border: 0; border-radius: 8px; cursor: pointer; }
+.issue-form .cancel { color: var(--muted); background: transparent; border: 1px solid var(--border-strong); }
+.issue-form select.invalid, .issue-form input.invalid { border-color: var(--danger); background: var(--invalid); }
 .books { width: 100%; border-collapse: collapse; font-size: 14px; }
 .cover-cell { width: 44px; padding-right: 0 !important; }
 .cover-thumb { width: 36px; height: 52px; object-fit: cover; border-radius: 4px; display: block;
