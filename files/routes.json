@@ -350,5 +350,24 @@
         ]
       }
     ]
+  },
+  {
+    "path": "/api/media/upload",
+    "methods": [
+      "POST"
+    ],
+    "cache": {
+      "defaultTtl": 0
+    },
+    "membersOnly": true,
+    "loginPath": "/login",
+    "flows": [
+      {
+        "handle": "media_upload",
+        "methods": [
+          "POST"
+        ]
+      }
+    ]
   }
 ]

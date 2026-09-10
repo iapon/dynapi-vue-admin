@@ -77,9 +77,11 @@ const dict = {
     phYear: "Год",
     noCover: "Без обложки",
     add: "Добавить",
-    byUrlHint: "Нет файла в библиотеке?",
     byUrlName: "Имя в библиотеке",
     byUrlAdd: "В библиотеку",
+    libLabel: "Новая обложка:",
+    orLabel: "или",
+    fileTooLarge: "Файл больше 10 МБ — уменьшите картинку.",
     booksTotal: (n: number) => `Книг: ${n}`,
     search: "Название или автор",
     allStatuses: "Все статусы",
@@ -135,9 +137,11 @@ const dict = {
     phYear: "Year",
     noCover: "No cover",
     add: "Add",
-    byUrlHint: "No file in the library?",
     byUrlName: "Name in the library",
     byUrlAdd: "Upload",
+    libLabel: "New cover:",
+    orLabel: "or",
+    fileTooLarge: "The file is over 10 MB — shrink the image.",
     booksTotal: (n: number) => `Books: ${n}`,
     search: "Title or author",
     allStatuses: "All statuses",
@@ -206,6 +210,44 @@ const printNotice = ref("");
 const covers = ref<MediaItem[]>([]);
 const byUrl = ref({ url: "", name: "" });
 const addingUrl = ref(false);
+const uploadingFile = ref(false);
+
+// Файл с диска: multipart-запрос к сценарию /api/media/upload (у него
+// включён тумблер «Принимать файлы»). Сценарий отвечает ссылкой на запись
+// медиатеки: {media: {id, url, name, …}} — новую обложку подставляем в пикер.
+async function uploadFile(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  uploadingFile.value = true;
+  serverMessage.value = "";
+  try {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/media/upload", {
+      method: "POST",
+      headers: { Accept: "application/json" },
+      body: fd,
+    });
+    if (res.redirected || res.status === 302) {
+      window.location.href = "/login";
+      return;
+    }
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      serverMessage.value =
+        data?.error === "FILE_TOO_LARGE" ? t.value.fileTooLarge : t.value.coverFailed;
+      return;
+    }
+    await loadCovers();
+    if (data?.media?.id) form.value.cover = data.media.id;
+  } catch {
+    serverMessage.value = t.value.coverFailed;
+  } finally {
+    uploadingFile.value = false;
+    input.value = "";
+  }
+}
 
 // Журнал выдач: активные записи и читатели для селекта. Выдача открывается
 // из строки каталога: ищем книгу глазами, читателя выбираем из списка.
@@ -575,11 +617,20 @@ onMounted(() => {
         </select>
         <button type="submit" :disabled="adding">{{ t.add }}</button>
       </form>
-      <form class="by-url" @submit.prevent="addByUrl">
-        <span class="muted">{{ t.byUrlHint }}</span>
-        <input v-model="byUrl.url" placeholder="https://…" />
-        <input v-model="byUrl.name" :placeholder="t.byUrlName" />
-        <button type="submit" :disabled="addingUrl">{{ t.byUrlAdd }}</button>
+      <form class="lib-add" @submit.prevent="addByUrl">
+        <span class="muted lib-label">{{ t.libLabel }}</span>
+        <input
+          type="file"
+          accept="image/*"
+          :disabled="uploadingFile"
+          @change="uploadFile"
+        />
+        <span class="link-set">
+          <span class="muted">{{ t.orLabel }}</span>
+          <input v-model="byUrl.url" placeholder="https://…" />
+          <input v-model="byUrl.name" :placeholder="t.byUrlName" />
+          <button type="submit" :disabled="addingUrl">{{ t.byUrlAdd }}</button>
+        </span>
       </form>
     </section>
 
@@ -741,12 +792,21 @@ h2 { margin: 0; font-size: 14px; color: var(--muted); font-weight: 600; }
 .form .cover-sel { order: 5; flex: 1 1 100%; }
 .form button { order: 4; }
 .form input.invalid, .form select.invalid { border-color: var(--danger); background: var(--invalid); }
-.by-url { display: grid; grid-template-columns: auto 2fr 1.4fr auto; gap: 8px; align-items: center; margin-top: 10px;
-          padding-top: 12px; border-top: 1px dashed var(--border); }
-.by-url input { padding: 7px 10px; font-size: 13px; background: var(--panel); color: var(--text);
-                border: 1px solid var(--border-strong); border-radius: 8px; }
-.by-url button { padding: 7px 12px; font-size: 13px; font-weight: 600; color: var(--primary); background: transparent;
-                 border: 1px solid var(--border-strong); border-radius: 8px; cursor: pointer; }
+.lib-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px;
+           padding-top: 12px; border-top: 1px dashed var(--border); }
+.lib-add .lib-label { font-weight: 600; }
+.lib-add input { padding: 7px 10px; font-size: 13px; background: var(--panel); color: var(--text);
+                 border: 1px solid var(--border-strong); border-radius: 8px; }
+.lib-add .link-set { display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+                     flex: 1 1 340px; min-width: 0; }
+.lib-add .link-set input { flex: 1 1 120px; min-width: 0; }
+.lib-add button { padding: 7px 12px; font-size: 13px; font-weight: 600; color: var(--primary); background: transparent;
+                  border: 1px solid var(--border-strong); border-radius: 8px; cursor: pointer; }
+.lib-add input[type="file"] { padding: 5px 8px; font-size: 13px; color: var(--muted);
+                              max-width: 320px; }
+.lib-add input[type="file"]::file-selector-button { padding: 5px 10px; margin-right: 10px; font-size: 13px; font-weight: 600;
+                color: var(--primary); background: transparent; border: 1px solid var(--border-strong);
+                border-radius: 6px; cursor: pointer; }
 .form button, .del { padding: 9px 14px; font-size: 13px; font-weight: 600; color: #fff; background: var(--primary); border: 0; border-radius: 8px; cursor: pointer; }
 .del { background: transparent; color: var(--danger); padding: 4px 8px; }
 /* Выдача из строки каталога: тихая кнопка-ссылка и раскрытая строка. */

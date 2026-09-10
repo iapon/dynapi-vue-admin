@@ -1,0 +1,69 @@
+{
+  "format": "dynapi-flow",
+  "version": 1,
+  "exportedAt": "2026-09-10T00:00:00.000Z",
+  "handle": {
+    "slug": "media_upload",
+    "name": "Media upload",
+    "enabled_cors": false,
+    "allowed_origins": [],
+    "accept_files": true
+  },
+  "routes": [
+    {
+      "path": "/api/media/upload",
+      "methods": ["POST"],
+      "cache": { "defaultTtl": 0 },
+      "membersOnly": true,
+      "loginPath": "/login",
+      "flows": [{ "handle": "media_upload", "methods": ["POST"] }]
+    }
+  ],
+  "flow": {
+    "version": 2,
+    "nodes": [
+      { "id": "n_start", "type": "entry", "data": {} },
+      {
+        "id": "c_has_file",
+        "type": "condition",
+        "data": {
+          "predicate": {
+            "combinator": "and",
+            "clauses": [
+              { "field": "form.file", "operator": "ne", "value": "" }
+            ]
+          }
+        }
+      },
+      {
+        "id": "a_ok",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 200,
+            "body_template": "{\"media\": {{ form.file | json }}}"
+          }
+        }
+      },
+      {
+        "id": "a_empty",
+        "type": "action",
+        "data": {
+          "action_type": "respond_json",
+          "on_error": "continue",
+          "config": {
+            "status": 400,
+            "body_template": "{\"error\": \"NO_FILE\"}"
+          }
+        }
+      }
+    ],
+    "edges": [
+      { "from": "n_start", "to": "c_has_file", "branch": "" },
+      { "from": "c_has_file", "to": "a_ok", "branch": "then" },
+      { "from": "c_has_file", "to": "a_empty", "branch": "else" }
+    ]
+  }
+}

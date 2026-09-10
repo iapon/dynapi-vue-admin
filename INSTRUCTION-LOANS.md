@@ -30,7 +30,7 @@ members-only. JSON: `{"members":[{"id","name","email"}…]}`, по алфави�
 
 ### 3. GET /api/loans — активные выдачи
 
-members-only. JSON: `{"loans":[{"id","dueDate","book":{title},"member":{email}}…]}`.
+members-only. JSON: `{"loans":[{"id","due_date","book":{title},"member":{email}}…]}`.
 Только `status = active`, по возрастанию `due_date`. Запрос — в библиотеку
 под именем `loans_list`.
 
